@@ -58,11 +58,16 @@ def plot_qps():
 
 if __name__ == "__main__":
 
-    # convert txt file into csv
-    ## this step is not necessary, however it might facilitate further usage
+    # convert txt file into csv, this step is not necessary, however it might facilitate further usage
     txt2csv()
-    testAvg = calculate_avg(testArray[0])
-    print(testAvg)
+
+    # 
+    testSets = np.array([])
+    for test in testArray:
+        testAvg = calculate_avg(test)
+        np.append(testSets, testAvg)
+    
+    print(testSets)
     
 
 
