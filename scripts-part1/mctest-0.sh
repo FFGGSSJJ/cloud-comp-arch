@@ -3,7 +3,8 @@ echo 'MEMCACHED_IP: ' $MEMCACHED_IP
 echo 'INTERNAL_AGENT_IP:' $INTERNAL_AGENT_IP
 
 RESULT_DIR='/home/ubuntu/results/'
-if [ ! -d $RESULT_DIR ]
+if [ ! -d $RESULT_DIR ] 
+then
 	mkdir $RESULT_DIR
 fi
 
