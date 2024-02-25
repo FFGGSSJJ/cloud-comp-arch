@@ -1,0 +1,6 @@
+real	3m9.664s
+real	2m58.744s
+real	3m19.440s
+real	2m57.932s
+real	3m36.171s
+real	3m6.882s

@@ -2,31 +2,47 @@
 
 ibench='cpu l1d l1i l2 llc membw'
 parsec='blackscholes canneal dedup ferret freqmine radix vips'
+RESULT_DIR='./results'
+
+if [ ! -d $RESULT_DIR ] 
+then
+	mkdir $RESULT_DIR
+else
+    rm $RESULT_DIR/*.txt
+fi
+
 
 for i in $ibench
 do
     # launch ibench pod
-    kubectl create -f 'interference/ibench-'$i'.yaml'
-    while [ $(kubectl get pods 'ibench-'$i -o 'jsonpath={..status.conditions[?(@.type=="Ready")].status}') != "True" ]; do echo "[info]: waiting for pod" && sleep 1; done
+    echo '[info]: create ibench pod'
+    kubectl create -f '../../cloud-comp-arch-project/interference/ibench-'$i'.yaml'
+    kubectl wait --for=condition=Ready pod/ibench-$i --timeout=60s
+
+    # make sure interference take effect
+    sleep 5
 
     for j in $parsec
     do
         # launch parsec job
-        kubectl create -f 'parsec-benchmarks/part2a/parsec-'$j'.yaml'
-        sleep 5
+        echo '[info]: create parsec pod'
+        kubectl create -f '../../cloud-comp-arch-project/parsec-benchmarks/part2a/parsec-'$j'.yaml'
+        kubectl wait --for=condition=Complete job/parsec-$j --timeout=600s
 
         # log
-        kubectl logs $(kubectl get pods --selector=job-name='parsec-'$j --output=jsonpath='{.items[*].metadata.name}')
+        kubectl logs $(kubectl get pods --selector=job-name='parsec-'$j --output=jsonpath='{.items[*].metadata.name}') |  grep 'real' >> $RESULT_DIR'/parsec-'$j'.txt'
 
         # delete parsec job
         kubectl delete job 'parsec-'$j
-        echo '[info]: job parsec-'$j' deleted'
+        echo '[info]: job parsec-'$j' now deleted'
         sleep 5
     done
 
     # delete current ibench pod
     kubectl delete pods 'ibench-'$i
-    echo '[info]: pod ibench-'$i' deleted'
+    echo '[info]: pod ibench-'$i' now deleted'
+
+    # make sure resources are recycled
     sleep 5
 done
 
