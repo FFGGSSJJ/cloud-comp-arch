@@ -11,7 +11,24 @@ else
     rm $RESULT_DIR/*.txt
 fi
 
+echo '----[info]: perform none interference test'
+for j in $parsec
+do
+    # launch parsec job
+    echo '[info]: create parsec pod'
+    kubectl create -f '../../cloud-comp-arch-project/parsec-benchmarks/part2a/parsec-'$j'.yaml'
+    kubectl wait --for=condition=Complete job/parsec-$j --timeout=600s
 
+    # log
+    kubectl logs $(kubectl get pods --selector=job-name='parsec-'$j --output=jsonpath='{.items[*].metadata.name}') | grep 'real' >> $RESULT_DIR'/parsec-'$j'.txt'
+
+    # delete parsec job
+    kubectl delete job 'parsec-'$j
+    echo '[info]: job parsec-'$j' now deleted'
+    sleep 5
+done
+
+echo '----[info]: perform interference test'
 for i in $ibench
 do
     # launch ibench pod
@@ -30,7 +47,7 @@ do
         kubectl wait --for=condition=Complete job/parsec-$j --timeout=600s
 
         # log
-        kubectl logs $(kubectl get pods --selector=job-name='parsec-'$j --output=jsonpath='{.items[*].metadata.name}') |  grep 'real' >> $RESULT_DIR'/parsec-'$j'.txt'
+        kubectl logs $(kubectl get pods --selector=job-name='parsec-'$j --output=jsonpath='{.items[*].metadata.name}') | grep 'real' >> $RESULT_DIR'/parsec-'$j'.txt'
 
         # delete parsec job
         kubectl delete job 'parsec-'$j
@@ -46,4 +63,5 @@ do
     sleep 5
 done
 
-echo '[info]: all tests finished'
+echo '----[info]: all tests finished'
+python3 report.py

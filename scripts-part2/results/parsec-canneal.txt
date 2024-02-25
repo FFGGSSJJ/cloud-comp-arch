@@ -4,3 +4,4 @@ real	0m20.093s
 real	0m13.085s
 real	0m20.086s
 real	0m14.137s
+real	0m11.187s
