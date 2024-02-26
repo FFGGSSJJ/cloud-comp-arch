@@ -19,7 +19,7 @@
 
     - i.e. `python3 report.py a`, output will be like:
 
-      ```shell
+      ```bash
       		none	cpu	l1d	l1i	l2	llc	membw
       blackscholes	1.231	1.283	1.515	1.273	1.39	1.286	1.0
       canneal		1.039	1.201	1.796	1.17	1.795	1.264	1.0
