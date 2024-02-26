@@ -78,7 +78,8 @@ def plot_qps_p95(testAvgDataSets, testErrSets):
 
     # set axis limit
     plt.xlim(0, 55000)
-    plt.ylim(0, 8)
+    plt.xticks(np.linspace(0, 55000, 12), np.array(['0k', '5k', '10k', '15k', '20k', '25k', '30k', '35k', '40k', '45k', '50k', '55k']))
+    plt.ylim(0, 9)
 
     # set axis labels
     plt.xlabel("QPS")
@@ -97,7 +98,7 @@ def plot_qps_p95(testAvgDataSets, testErrSets):
         plt.errorbar(xaxis, yaxis, xerr=xerrs,yerr=yerrs, **linestyle, label=test_array[i])
     
     plt.legend()
-    plt.savefig('./part1-fig.png')
+    plt.savefig('./part1-fig.png', dpi=1200)
     plt.show()
 
 

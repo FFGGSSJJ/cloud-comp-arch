@@ -48,10 +48,10 @@ def plot_time_thread(rateMat):
     plt.xlabel("Threads Number")
     plt.ylabel("Normalized Time")
     plt.xticks(threads)
-    plt.yticks(np.linspace(0, 1, 9))
+    plt.yticks(np.linspace(0, 7, 8))
 
     plt.legend()
-    plt.savefig('./part2b.png')
+    plt.savefig('./part2b.png', dpi=1200)
     plt.show()
 
 
@@ -69,7 +69,10 @@ if __name__ == '__main__':
 
     # normalize
     for row in time_mat:
-        row = row/row[0]
+        if part == 'a':
+            row = row/row[0]
+        else:
+            row = [row[0]/i for i in row]
         rate_mat.append(row)
     rate_mat = np.array(rate_mat)
 
