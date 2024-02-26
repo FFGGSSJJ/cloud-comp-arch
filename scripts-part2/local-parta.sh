@@ -2,7 +2,7 @@
 
 ibench='cpu l1d l1i l2 llc membw'
 parsec='blackscholes canneal dedup ferret freqmine radix vips'
-RESULT_DIR='./results'
+RESULT_DIR='./results-a'
 
 if [ ! -d $RESULT_DIR ] 
 then
@@ -33,7 +33,7 @@ for i in $ibench
 do
     # launch ibench pod
     echo '[info]: create ibench pod'
-    kubectl create -f '../../cloud-comp-arch-project/interference/ibench-'$i'.yaml'
+    kubectl create -f '../../cloud-comp-arch-project/interference/part2a/ibench-'$i'.yaml'
     kubectl wait --for=condition=Ready pod/ibench-$i --timeout=60s
 
     # make sure interference take effect
@@ -64,4 +64,4 @@ do
 done
 
 echo '----[info]: all tests finished'
-python3 report.py
+python3 report.py a

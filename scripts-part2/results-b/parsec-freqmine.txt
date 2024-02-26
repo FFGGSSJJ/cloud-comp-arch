@@ -1,0 +1,4 @@
+real	8m23.730s
+real	4m14.132s
+real	4m15.667s
+real	4m22.728s
