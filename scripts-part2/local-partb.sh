@@ -15,7 +15,7 @@ for j in $parsec
 do
     # launch parsec job
     echo '[info]: create parsec pod'
-    kubectl create -f '../../cloud-comp-arch-project/parsec-benchmarks/part2b/parsec-'$j'.yaml'
+    kubectl create -f '../config/parsec-benchmarks/part2b/parsec-'$j'.yaml'
     kubectl wait --for=condition=Complete job/parsec-$j --timeout=6000s
 
     # log

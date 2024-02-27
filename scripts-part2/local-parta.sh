@@ -3,6 +3,7 @@
 ibench='cpu l1d l1i l2 llc membw'
 parsec='blackscholes canneal dedup ferret freqmine radix vips'
 RESULT_DIR='./results-a'
+CONFIG_DIR='../config'
 
 if [ ! -d $RESULT_DIR ] 
 then
@@ -16,7 +17,7 @@ for j in $parsec
 do
     # launch parsec job
     echo '[info]: create parsec pod'
-    kubectl create -f '../../cloud-comp-arch-project/parsec-benchmarks/part2a/parsec-'$j'.yaml'
+    kubectl create -f '../config/parsec-benchmarks/part2a/parsec-'$j'.yaml'
     kubectl wait --for=condition=Complete job/parsec-$j --timeout=600s
 
     # log
@@ -33,7 +34,7 @@ for i in $ibench
 do
     # launch ibench pod
     echo '[info]: create ibench pod'
-    kubectl create -f '../../cloud-comp-arch-project/interference/part2a/ibench-'$i'.yaml'
+    kubectl create -f '../config/interference/part2a/ibench-'$i'.yaml'
     kubectl wait --for=condition=Ready pod/ibench-$i --timeout=60s
 
     # make sure interference take effect
@@ -43,7 +44,7 @@ do
     do
         # launch parsec job
         echo '[info]: create parsec pod'
-        kubectl create -f '../../cloud-comp-arch-project/parsec-benchmarks/part2a/parsec-'$j'.yaml'
+        kubectl create -f '../config/parsec-benchmarks/part2a/parsec-'$j'.yaml'
         kubectl wait --for=condition=Complete job/parsec-$j --timeout=600s
 
         # log
