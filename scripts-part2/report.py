@@ -41,7 +41,7 @@ def plot_time_thread(rateMat):
     threads = np.array(['1','2','4','8'])
 
     for i in range(len(test_array)):
-        linestyle = {"linestyle":"--", "linewidth":0.7, "marker":"o"}
+        linestyle = {"linestyle":"--", "linewidth":0.7, "marker":"o", "markersize":2.5}
         plt.plot(threads, rateMat[i], label=test_array[i], **linestyle)
     
     # set axis labels
@@ -52,6 +52,21 @@ def plot_time_thread(rateMat):
 
     plt.legend()
     plt.savefig('./part2b.png', dpi=1200)
+    plt.show()
+
+def plot_actualTime_threads(timeMat):
+    threads = np.array(['1','2','4','8'])
+    for i in range(len(test_array)):
+        linestyle = {"linestyle":"--", "linewidth":0.7, "marker":"o", "markersize":2.5}
+        plt.plot(threads, timeMat[i], label=test_array[i], **linestyle)
+
+    # set axis labels
+    plt.xlabel("Threads Number")
+    plt.ylabel("Real Time")
+    plt.xticks(threads)
+
+    plt.legend()
+    plt.savefig('./part2b-realtime.png', dpi=1200)
     plt.show()
 
 
@@ -80,5 +95,6 @@ if __name__ == '__main__':
         show_rate(rate_mat)
     else:
         plot_time_thread(rate_mat)
+        plot_actualTime_threads(time_mat)
     
     
