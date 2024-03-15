@@ -4,11 +4,13 @@
 
 - `mcperf-compile.sh`: script for compiling `mcperf` on ***agent*** and ***measure*** VM machines
 
+  - copy it to your root directory before executing
   - it is copied from part1 instructions, follow the instructions first
 
 - `mctest-0.sh`: script for automatically running tests and collecting datasets in ***measure*** VM machine
 
   - before using:
+    - copy it to your root directory before executing
     - set up `MEMCACHED_IP` and `INTERNAL_AGENT_IP` env variables correctly
   - after deploying corresponding ibench pod:
     - `./mctest-0.sh <test name>`
