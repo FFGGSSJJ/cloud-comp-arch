@@ -15,6 +15,7 @@
   - after deploying corresponding ibench pod:
     - `./mctest-0.sh <test name>`
     - i.e.: `./mctest-0.sh cpu` for ibench-cpu
+    - i.e.: `./mctest-0.sh memcache` for non-ibench tests
 
 - `local.sh`: script for local machine that will automatically download data sets from ***measure*** node machine
 
