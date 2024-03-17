@@ -12,7 +12,7 @@ spec:
         name: parsec-blackscholes
         imagePullPolicy: Always
         command: ["/bin/sh"]
-        args: ["-c", "for i in 1 2 4 8; do ./run -a run -S parsec -p blackscholes -i native -n $i; sleep 10; done"]
+        args: ["-c", "./run -a run -S parsec -p blackscholes -i native -n 1"]
       restartPolicy: Never
       nodeSelector:
         cca-project-nodetype: "parsec"
