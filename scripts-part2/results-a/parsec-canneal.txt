@@ -1,7 +1,7 @@
-real	0m9.517s
-real	0m11.260s
-real	0m12.784s
-real	0m13.939s
-real	0m13.602s
-real	0m18.482s
-real	0m13.920s
+real	0m9.438s
+real	0m11.253s
+real	0m12.578s
+real	0m13.388s
+real	0m12.194s
+real	0m18.854s
+real	0m13.829s
