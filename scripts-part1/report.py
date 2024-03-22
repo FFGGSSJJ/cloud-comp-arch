@@ -6,8 +6,10 @@ from mpl_toolkits.axes_grid1.inset_locator import inset_axes
 from mpl_toolkits.axes_grid1.inset_locator import mark_inset
 from matplotlib.patches import ConnectionPatch
 
+# test_array = ['nointerference', 'cpu', 'l1d', 'l1i', 'l2', 'llc', 'membw']
+# color_array= ['#BB9727', '#F87970', '#32B897', '#05B9E2', '#8983BF', '#FF9646', '#C76DA2']
 test_array = ['nointerference', 'cpu', 'l1d', 'l1i', 'l2', 'llc', 'membw']
-color_array= ['#BB9727', '#F87970', '#32B897', '#05B9E2', '#8983BF', '#FF9646', '#C76DA2']
+color_array= ['#FF9646', '#F87970', '#32B897', '#05B9E2', '#8983BF', '#BB9727', '#C76DA2']
 result_dir_path = './results/'
 
 # turn txt file into csv file
@@ -143,11 +145,35 @@ def plot_qps_p95_local_zoom(testAvgDataSets, testErrSets):
 
     # plot lines and err bars
     for i in range(len(test_array)):
-        xaxis = [testDataRow[qps_id] for testDataRow in testAvgDataSets[i]]
-        yaxis = [testDataRow[p95_id]/1000 for testDataRow in testAvgDataSets[i]]
+        if (test_array[i] == 'cpu' or test_array[i] == 'l1i'):
+            xaxis_origin = [testDataRow[qps_id] for testDataRow in testAvgDataSets[i]]
+            yaxis_origin = [testDataRow[p95_id]/1000 for testDataRow in testAvgDataSets[i]]
 
-        xerrs = [testErrRow[qps_id] for testErrRow in testErrSets[i]]
-        yerrs = [testErrRow[p95_id]/1000 for testErrRow in testErrSets[i]]
+            xerrs_origin = [testErrRow[qps_id] for testErrRow in testErrSets[i]]
+            yerrs_origin = [testErrRow[p95_id]/1000 for testErrRow in testErrSets[i]]
+
+            xaxis = []
+            yaxis = []
+            xerrs = []
+            yerrs = []
+
+            for j in [0, 1, 2, 3, 4]:
+                xaxis.append(xaxis_origin[j])
+                yaxis.append(yaxis_origin[j])
+                xerrs.append(xerrs_origin[j])
+                yerrs.append(yerrs_origin[j])
+
+            xaxis.append((xaxis_origin[5]+xaxis_origin[6]+xaxis_origin[7]+xaxis_origin[8]+xaxis_origin[9]+xaxis_origin[10])/6)
+            yaxis.append((yaxis_origin[5]+yaxis_origin[6]+yaxis_origin[7]+yaxis_origin[8]+yaxis_origin[9]+yaxis_origin[10])/6)
+            xerrs.append((xerrs_origin[5]+xerrs_origin[6]+xerrs_origin[7]+xerrs_origin[8]+xerrs_origin[9]+xerrs_origin[10])/6)
+            yerrs.append((yerrs_origin[5]+yerrs_origin[6]+yerrs_origin[7]+yerrs_origin[8]+yerrs_origin[9]+yerrs_origin[10])/6)
+        
+        else:
+            xaxis = [testDataRow[qps_id] for testDataRow in testAvgDataSets[i]]
+            yaxis = [testDataRow[p95_id]/1000 for testDataRow in testAvgDataSets[i]]
+
+            xerrs = [testErrRow[qps_id] for testErrRow in testErrSets[i]]
+            yerrs = [testErrRow[p95_id]/1000 for testErrRow in testErrSets[i]]
 
         # plt.plot(xaxis, yaxis, label=test_array[i], linestyle='-')
         linestyle = {"linestyle":"--", "linewidth":3, "markeredgewidth":2, "elinewidth":0.8, "capsize":1, "color": color_array[i]}
@@ -162,29 +188,50 @@ def plot_qps_p95_local_zoom(testAvgDataSets, testErrSets):
 
     for i in range(len(test_array)):
         if (test_array[i] == 'cpu' or test_array[i] == 'l1i'):
-            xaxis = [testDataRow[qps_id] for testDataRow in testAvgDataSets[i]]
-            yaxis = [testDataRow[p95_id]/1000 for testDataRow in testAvgDataSets[i]]
+            xaxis_origin = [testDataRow[qps_id] for testDataRow in testAvgDataSets[i]]
+            yaxis_origin = [testDataRow[p95_id]/1000 for testDataRow in testAvgDataSets[i]]
 
-            xerrs = [testErrRow[qps_id] for testErrRow in testErrSets[i]]
-            yerrs = [testErrRow[p95_id]/1000 for testErrRow in testErrSets[i]]
+            xerrs_origin = [testErrRow[qps_id] for testErrRow in testErrSets[i]]
+            yerrs_origin = [testErrRow[p95_id]/1000 for testErrRow in testErrSets[i]]
+
+            xaxis = []
+            yaxis = []
+            xerrs = []
+            yerrs = []
+
+            for j in [0, 1, 2, 3, 4]:
+                xaxis.append(xaxis_origin[j])
+                yaxis.append(yaxis_origin[j])
+                xerrs.append(xerrs_origin[j])
+                yerrs.append(yerrs_origin[j])
+
+            xaxis.append((xaxis_origin[5]+xaxis_origin[6]+xaxis_origin[7]+xaxis_origin[8]+xaxis_origin[9]+xaxis_origin[10])/6)
+            yaxis.append((yaxis_origin[5]+yaxis_origin[6]+yaxis_origin[7]+yaxis_origin[8]+yaxis_origin[9]+yaxis_origin[10])/6)
+            xerrs.append((xerrs_origin[5]+xerrs_origin[6]+xerrs_origin[7]+xerrs_origin[8]+xerrs_origin[9]+xerrs_origin[10])/6)
+            yerrs.append((yerrs_origin[5]+yerrs_origin[6]+yerrs_origin[7]+yerrs_origin[8]+yerrs_origin[9]+yerrs_origin[10])/6)
+
+            print(xaxis)
+            print(yaxis)
+            print(xerrs)
+            print(yerrs)
 
             # plt.plot(xaxis, yaxis, label=test_array[i], linestyle='-')
-            # linestyle = {"linestyle":"--", "linewidth":3, "markeredgewidth":2, "elinewidth":0.8, "capsize":1, "color": color_array[i]}
-            # axins.errorbar(xaxis, yaxis, xerr=xerrs,yerr=yerrs, **linestyle, label=test_array[i])
-            linestyle = {"linestyle":"--", "linewidth":3, "markeredgewidth":2, "color": color_array[i]}
-            axins_1.plot(xaxis, yaxis, **linestyle, label=test_array[i])
+            linestyle = {"linestyle":"--", "linewidth":3, "markeredgewidth":2, "elinewidth":0.8, "capsize":1, "color": color_array[i]}
+            axins_1.errorbar(xaxis, yaxis, xerr=xerrs,yerr=yerrs, **linestyle, label=test_array[i])
+            # linestyle = {"linestyle":"--", "linewidth":3, "markeredgewidth":2, "color": color_array[i]}
+            # axins_1.plot(xaxis, yaxis, **linestyle, label=test_array[i])
 
     # X-axis display range
-    xlim0 = 27e3
+    xlim0 = 26e3
     xlim1 = 29e3
 
     # Y-axis display range
-    ylim0 = 5.5
-    ylim1 = 7.1
+    ylim0 = 4.5
+    ylim1 = 6.8
 
     # adjust child axis display range
-    axins_1.set_xlim(27e3, 29e3)
-    axins_1.set_ylim(5.5, 7.1)
+    axins_1.set_xlim(26e3, 29e3)
+    axins_1.set_ylim(4.5, 6.8)
 
     axins_1.set_xlim(xlim0, xlim1)
     axins_1.set_ylim(ylim0, ylim1)
@@ -198,8 +245,8 @@ def plot_qps_p95_local_zoom(testAvgDataSets, testErrSets):
         label.set_fontweight('heavy')
         label.set_fontname('Times New Roman')
 
-    axins_1.set_xticks([27e3, 27.5e3, 28e3, 28.5e3, 29e3])
-    axins_1.set_xticklabels(['27k', '27.5k', '28k', '28.5k', '29k'])
+    axins_1.set_xticks([26e3, 27e3, 28e3, 29e3])
+    axins_1.set_xticklabels(['26k', '27k', '28k', '29k'])
 
     patch_list_1 = mark_inset(ax, axins_1, loc1=4, loc2=1, fc="none", ec='k', lw=0.6)
     for patch in patch_list_1:
@@ -221,22 +268,22 @@ def plot_qps_p95_local_zoom(testAvgDataSets, testErrSets):
             yerrs = [testErrRow[p95_id]/1000 for testErrRow in testErrSets[i]]
 
             # plt.plot(xaxis, yaxis, label=test_array[i], linestyle='-')
-            # linestyle = {"linestyle":"--", "linewidth":3, "markeredgewidth":2, "elinewidth":0.8, "capsize":1, "color": color_array[i]}
-            # axins.errorbar(xaxis, yaxis, xerr=xerrs,yerr=yerrs, **linestyle, label=test_array[i])
-            linestyle = {"linestyle":"--", "linewidth":3, "markeredgewidth":2, "color": color_array[i]}
-            axins_2.plot(xaxis, yaxis, **linestyle, label=test_array[i])
+            linestyle = {"linestyle":"--", "linewidth":3, "markeredgewidth":2, "elinewidth":0.8, "capsize":1, "color": color_array[i]}
+            axins_2.errorbar(xaxis, yaxis, xerr=xerrs,yerr=yerrs, **linestyle, label=test_array[i])
+            # linestyle = {"linestyle":"--", "linewidth":3, "markeredgewidth":2, "color": color_array[i]}
+            # axins_2.plot(xaxis, yaxis, **linestyle, label=test_array[i])
 
     # X-axis display range
-    xlim0 = 49e3
-    xlim1 = 54e3
+    xlim0 = 51e3
+    xlim1 = 55e3
 
     # Y-axis display range
     ylim0 = 1
-    ylim1 = 2
+    ylim1 = 2.5
 
     # adjust child axis display range
-    axins_2.set_xlim(49e3, 54e3)
-    axins_2.set_ylim(1, 2)
+    axins_2.set_xlim(51e3, 55e3)
+    axins_2.set_ylim(1, 2.5)
 
     axins_2.set_xlim(xlim0, xlim1)
     axins_2.set_ylim(ylim0, ylim1)
@@ -250,8 +297,10 @@ def plot_qps_p95_local_zoom(testAvgDataSets, testErrSets):
         label.set_fontname('Times New Roman')
         label.set_fontweight('heavy')
 
-    axins_2.set_xticks([50e3, 52e3, 54e3])
-    axins_2.set_xticklabels(['50k', '52k', '54k'])
+    axins_2.set_xticks([51e3, 53e3, 55e3])
+    axins_2.set_xticklabels(['51k', '53k', '55k'])
+    axins_2.set_yticks([1, 1.5, 2, 2.5])
+    axins_2.set_yticklabels(['1', '1.5', '2', '2.5'])
 
     patch_list_2 = mark_inset(ax, axins_2, loc1=4, loc2=1, fc="none", ec='k', lw=0.6)
     for patch in patch_list_2:
