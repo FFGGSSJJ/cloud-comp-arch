@@ -176,7 +176,7 @@ def plot_qps_p95_local_zoom(testAvgDataSets, testErrSets):
             yerrs = [testErrRow[p95_id]/1000 for testErrRow in testErrSets[i]]
 
         # plt.plot(xaxis, yaxis, label=test_array[i], linestyle='-')
-        linestyle = {"linestyle":"--", "linewidth":3, "markeredgewidth":2, "elinewidth":0.8, "capsize":1, "color": color_array[i]}
+        linestyle = {"linestyle":"--", "linewidth":2, "markeredgewidth":2, "elinewidth":0.8, "capsize":1, "color": color_array[i]}
         ax.errorbar(xaxis, yaxis, xerr=xerrs,yerr=yerrs, **linestyle, label=test_array[i])
 
     # plot local zoom_1

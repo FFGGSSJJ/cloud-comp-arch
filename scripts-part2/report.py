@@ -38,17 +38,24 @@ def show_rate(rateMat):
 
 # plot normalized time vs threads
 def plot_time_thread(rateMat):
-    threads = np.array(['1','2','4','8'])
+    # threads = np.array(['1','2','4','8'])
+    baseline = np.array([1, 2, 4, 8])
+    # threads = np.linspace(1, 8, 4)
 
     for i in range(len(test_array)):
-        linestyle = {"linestyle":"--", "linewidth":0.7, "marker":"o", "markersize":2.5}
-        plt.plot(threads, rateMat[i], label=test_array[i], **linestyle)
+        linestyle = {"linestyle":"-", "linewidth":0.7, "marker":"o", "markersize":2.5}
+        plt.plot(baseline, rateMat[i], label=test_array[i], **linestyle)
+    
+    # plot baseline
+    linestyle = {"linestyle":"--", "linewidth":0.5}
+    plt.plot(np.linspace(1, 8), np.linspace(1, 8), **linestyle)
     
     # set axis labels
     plt.xlabel("Threads Number")
     plt.ylabel("Normalized Time")
-    plt.xticks(threads)
+    # plt.xticks(threads)
     plt.yticks(np.linspace(0, 7, 8))
+    plt.grid(linestyle = '--', linewidth=0.5)
 
     plt.legend()
     plt.savefig('./part2b.png', dpi=1200)
@@ -57,7 +64,7 @@ def plot_time_thread(rateMat):
 def plot_actualTime_threads(timeMat):
     threads = np.array(['1','2','4','8'])
     for i in range(len(test_array)):
-        linestyle = {"linestyle":"--", "linewidth":0.7, "marker":"o", "markersize":2.5}
+        linestyle = {"linestyle":"--", "linewidth":0.9, "marker":"o", "markersize":2.5}
         plt.plot(threads, timeMat[i], label=test_array[i], **linestyle)
 
     # set axis labels
