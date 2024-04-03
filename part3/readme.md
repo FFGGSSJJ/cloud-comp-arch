@@ -14,7 +14,7 @@ For part3, we are supposed to design an static interference-aware scheduling pol
 - `node-c-8core`:
   - freqmine (130s on node-c w/ all resources) --> feret
 
-##### result
+##### result v1
 
 ```
 schedule node b
@@ -35,5 +35,24 @@ job.batch/parsec-canneal condition met
 job.batch/parsec-ferret condition met
 done
 ./scheduler.sh  0.99s user 0.32s system 0% cpu 3:37.32 total
+```
+
+```
+Job:  parsec-blackscholes
+Job time:  0:00:46
+Job:  parsec-canneal
+Job time:  0:01:34
+Job:  parsec-dedup
+Job time:  0:00:18
+Job:  parsec-ferret
+Job time:  0:01:21
+Job:  parsec-freqmine
+Job time:  0:02:08
+Job:  parsec-radix
+Job time:  0:00:18
+Job:  parsec-vips
+Job time:  0:00:37
+Job:  memcached
+Total time: 0:03:33
 ```
 
