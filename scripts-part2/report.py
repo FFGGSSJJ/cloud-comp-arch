@@ -62,7 +62,7 @@ def plot_time_thread(rateMat):
     plt.show()
 
 def plot_actualTime_threads(timeMat):
-    threads = np.array(['1','2','4','8'])
+    threads = np.array([1, 2, 4, 8])
     for i in range(len(test_array)):
         linestyle = {"linestyle":"--", "linewidth":0.9, "marker":"o", "markersize":2.5}
         plt.plot(threads, timeMat[i], label=test_array[i], **linestyle)

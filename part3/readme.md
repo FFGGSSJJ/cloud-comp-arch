@@ -7,7 +7,7 @@ For part3, we are supposed to design an static interference-aware scheduling pol
 ### Scheme v1
 
 - `node-a-2core`: 
-  - memcached only
+  - memcached only ***0.5ms***
   - high cpu node with 2 cores. Deploy  `memcached` and an application that can be safely colocated to guarantee SLO
 - `node-b-4core`:
   - dedup --> vips + radix --> blackscholes + canneal (2 cores each)
@@ -56,3 +56,4 @@ Job:  memcached
 Total time: 0:03:33
 ```
 
+Memcached --->20s----> 7 apps
