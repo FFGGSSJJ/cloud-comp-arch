@@ -10,13 +10,20 @@ class ResourceAlert:
     # cpu_threshold_low_: float
 
     def __init__(self, pName: str, threshold_high: float, threshold_low: float) -> None:
+        # basic info
         self.pname_ = pName
         self.pid_ = self.get_pid()
+
+        # cpu util
         self.util_lock_ = threading.Lock()
         self.proc_avg_cpu_util_ = 0.0
-        self.default_cpu_set_ = '0-1'
 
-        # todo: tentatively thresholds are set based on 2 cores
+        #
+        self.default_cpu_set_ = '0-3'
+        self.low_cpu_set_ = '0-1'
+        self.default_ = True
+
+        #
         self.cpu_threshold_high_ = threshold_high
         self.cpu_threshold_low_ = threshold_low
 
@@ -69,23 +76,23 @@ class ResourceAlert:
             return 0
         
         # TODO: potentially upgrade cpu set
-        if (cur_util >= self.cpu_threshold_high_):
+        if (cur_util > self.cpu_threshold_high_):
             return 3
         
-        # memcached 75-150
+        # memcached 50-250
         # TODO: dynamic adjust threshold
         if (cur_util >= self.cpu_threshold_low_ and cur_util < self.cpu_threshold_high_):
             # batch job takes the majority
-            if (cur_util/total_util <= 0.5):
+            if (cur_util/total_util <= 0.33):
                 return 2
             
             # memcached takes the majority
-            if (cur_util/total_util > 0.5):
+            if (cur_util/total_util >= 0.66):
                 return 1
         
         return 3
     
-    def keep_alterting(self, interval: float = 2.0):
+    def keep_alterting(self, interval: float = 0.25):
         while True:
             avg_util = self.get_avg_proc_cpu_util(interval)
             with self.util_lock_:

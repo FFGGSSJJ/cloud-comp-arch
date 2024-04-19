@@ -110,8 +110,8 @@ class DynamicScheduler:
         loggerfd = open("./log", 'w')
 
         # start memcached process monitor thread
-        memcachedAlt = resource_alert.ResourceAlert("memcached", 150.0, 75.0)
-        memcachedAltThread = threading.Thread(target=memcachedAlt.keep_alterting, args=(1.0,), daemon=True)
+        memcachedAlt = resource_alert.ResourceAlert("memcached", 150.0, 50.0)
+        memcachedAltThread = threading.Thread(target=memcachedAlt.keep_alterting, args=(0.25,), daemon=True)
         memcachedAltThread.start()
 
         # TODO: parsec job monitor thread?
@@ -127,7 +127,7 @@ class DynamicScheduler:
             loggerfd.write(img+" starts at: "+str(jobStart)+"\n")
 
             while (self.get_container_status(self.containerId_dict[img]) != "exited"):
-                time.sleep(1.0)
+                time.sleep(0.25)
 
                 eval = memcachedAlt.evaluate()
 
