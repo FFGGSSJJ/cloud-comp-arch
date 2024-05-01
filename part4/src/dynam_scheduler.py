@@ -27,6 +27,7 @@ class DynamicScheduler:
             self.init_scheduler(containersInfo, True)
         except:
             self.delete_all()
+            assert False, "DynamicScheduler Init Failed"
 
     def init_scheduler(self, containersInfo: dict, imgInit: bool = True) -> None:
         """initialization for scheduler
@@ -41,6 +42,12 @@ class DynamicScheduler:
         for imgTag in self.img_tags_:
             self.init_container(imgTag, containersInfo[imgTag])
         
+    def pull_all(self) -> None:
+        for imgTag in self.img_tags_:
+            print("pull", imgTag)
+            ret = self.client_.images.pull(img_prefix+imgTag)
+
+
     def init_container(self, imgTag: str, containerInfo: dict) -> None:
         """create container using image with tag img_tag
 
@@ -54,11 +61,6 @@ class DynamicScheduler:
                                                       cpuset_cpus=containerInfo["cpu"])
         self.containerId_dict[imgTag] = containerObj.id
         return
-    
-    def pull_all(self) -> None:
-        for imgTag in self.img_tags_:
-            print("pull", imgTag)
-            ret = self.client_.images.pull(img_prefix+imgTag)
     
     def delete_all(self) -> None:
         """remove all created or exited containers
@@ -74,26 +76,29 @@ class DynamicScheduler:
     def start_container(self, containerId):
         containerObj = self.client_.containers.get(containerId)
         if (containerObj.status != "running" and containerObj.status != "exited"):
-            print("start: " + containerObj.name)
             containerObj.start()
+            print("[INFO]: start " + containerObj.name)
 
     # update the container
     def update_container(self, containerId, cpu_set: str):
         containerObj = self.client_.containers.get(containerId)
-        containerObj.reload()
         containerObj.update(cpuset_cpus=cpu_set)
-        print("update: " + containerObj.name + " to " + cpu_set)
+        print("[INFO]: update " + containerObj.name + " to " + cpu_set)
         
 
     def pause_container(self, containerId):
         containerObj = self.client_.containers.get(containerId)
-        containerObj.pause()
-        print("pause: " + containerObj.name)
+        if (containerObj.status == "paused" or containerObj.status == "exited"):
+            return
+        else:
+            containerObj.pause()
+            print("[INFO]: pause " + containerObj.name)
 
     def unpause_contaier(self, containerId):
         containerObj = self.client_.containers.get(containerId)
-        containerObj.unpause()
-        print("unpause: " + containerObj.name)
+        if (containerObj.status == "paused"):
+            containerObj.unpause()
+            print("[INFO]: unpause " + containerObj.name)
 
     def get_container_status(self, containerId) -> str:
         containerObj = self.client_.containers.get(containerId)
@@ -129,7 +134,7 @@ class DynamicScheduler:
             while (self.get_container_status(self.containerId_dict[img]) != "exited"):
                 time.sleep(0.25)
 
-                eval = memcachedAlt.evaluate()
+                eval = memcachedAlt.evaluate(self.cpu_flag_)
 
                 # if paused container
                 if (self.get_container_status(self.containerId_dict[img]) == "paused"):

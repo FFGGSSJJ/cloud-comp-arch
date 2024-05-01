@@ -31,8 +31,7 @@ class ResourceAlert:
         for proc in psutil.process_iter():
             if proc.name() == self.pname_:
                 return proc.pid
-        assert self.pname_+" process not found"
-        return -1
+        assert False, self.pname_+" process not found"
     
     def change_cpu_affinity(self, cpu_affinity: list[int]):
         """change cpu affinity of the process alterting, may not be necessary
@@ -53,7 +52,7 @@ class ResourceAlert:
 
     def get_instant_total_cpu_util(self) -> float:
         utils = psutil.cpu_percent(interval=0.1, percpu=True)
-        return sum(utils) + 1
+        return sum(utils)
     
     def get_instant_avg_cpu_util(self) -> float:
         """instantly return the avg cpu util of the process being alterting
@@ -64,7 +63,7 @@ class ResourceAlert:
         with self.util_lock_:
             return self.proc_avg_cpu_util_
     
-    def evaluate(self) -> int:
+    def evaluate(self, other_core_num: int) -> int:
         cur_util = self.get_instant_avg_cpu_util()
         total_util = self.get_instant_total_cpu_util()
 
