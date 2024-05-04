@@ -17,4 +17,5 @@ if [ $DIRECTION = "down" ]
 then
     echo "Download files"
     gcloud compute scp --recurse --ssh-key-file $GCLOUD_SSH ubuntu@$MEASURE:~/results/ $2  --zone europe-west3-a
+    gcloud compute scp --recurse --ssh-key-file $GCLOUD_SSH ubuntu@$MEMCACHED:~/logs/ $2  --zone europe-west3-a
 fi

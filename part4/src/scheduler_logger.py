@@ -8,21 +8,20 @@ LOG_STRING = "{timestamp} {event} {job_name} {args}"
 class Job(Enum):
     SCHEDULER = "scheduler"
     MEMCACHED = "memcached"
-    BLACKSCHOLES = "blackscholes"
-    CANNEAL = "canneal"
-    DEDUP = "dedup"
-    FERRET = "ferret"
-    FREQMINE = "freqmine"
-    RADIX = "radix"
-    VIPS = "vips"
+    BLACKSCHOLES = "parsec_blackscholes"
+    CANNEAL = "parsec_canneal"
+    DEDUP = "parsec_dedup"
+    FERRET = "parsec_ferret"
+    FREQMINE = "parsec_freqmine"
+    RADIX = "splash2x_radix"
+    VIPS = "parsec_vips"
 
 
 class SchedulerLogger:
-    def __init__(self):
+    def __init__(self, file_name: str):
         start_date = datetime.now().strftime("%Y%m%d_%H%M%S")
 
-        self.file = open(f"log{start_date}.txt", "w")
-        self._log("start", Job.SCHEDULER)
+        self.file = open(file_name, "w")
 
     def _log(self, event: str, job_name: Job, args: str = "") -> None:
         self.file.write(
@@ -57,6 +56,9 @@ class SchedulerLogger:
     def custom_event(self, job:Job, comment: str):
         self._log("custom", job, urllib.parse.quote_plus(comment))
 
+    def start(self) -> None:
+        self._log("start", Job.SCHEDULER)
+        
     def end(self) -> None:
         self._log("end", Job.SCHEDULER)
         self.file.flush()
