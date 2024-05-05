@@ -1,0 +1,78 @@
+2024-05-05T20:28:27.667882 start scheduler
+2024-05-05T20:28:27.891260 start parsec_blackscholes [2,3] 4
+2024-05-05T20:28:28.274553 update_cores parsec_blackscholes [2,3]
+2024-05-05T20:28:31.994072 update_cores parsec_blackscholes [1,2,3]
+2024-05-05T20:28:40.012880 update_cores parsec_blackscholes [2,3]
+2024-05-05T20:28:54.248578 update_cores parsec_blackscholes [3]
+2024-05-05T20:29:02.304310 update_cores parsec_blackscholes [2,3]
+2024-05-05T20:29:02.448261 update_cores parsec_blackscholes [1,2,3]
+2024-05-05T20:29:02.584580 update_cores parsec_blackscholes [2,3]
+2024-05-05T20:29:12.097255 update_cores parsec_blackscholes [1,2,3]
+2024-05-05T20:29:21.964401 update_cores parsec_blackscholes [2,3]
+2024-05-05T20:29:29.781724 end parsec_blackscholes
+2024-05-05T20:29:29.999052 start parsec_canneal [1,2,3] 4
+2024-05-05T20:29:32.184589 update_cores parsec_canneal [1,2,3]
+2024-05-05T20:29:42.048161 update_cores parsec_canneal [2,3]
+2024-05-05T20:30:01.893032 update_cores parsec_canneal [1,2,3]
+2024-05-05T20:30:32.291567 update_cores parsec_canneal [2,3]
+2024-05-05T20:31:01.893039 update_cores parsec_canneal [1,2,3]
+2024-05-05T20:31:12.091926 update_cores parsec_canneal [2,3]
+2024-05-05T20:31:22.283319 update_cores parsec_canneal [1,2,3]
+2024-05-05T20:31:24.580683 update_cores parsec_canneal [2,3]
+2024-05-05T20:31:24.719637 update_cores parsec_canneal [1,2,3]
+2024-05-05T20:31:26.650986 update_cores parsec_canneal [2,3]
+2024-05-05T20:31:26.784081 update_cores parsec_canneal [1,2,3]
+2024-05-05T20:31:27.632921 update_cores parsec_canneal [2,3]
+2024-05-05T20:31:27.766535 update_cores parsec_canneal [1,2,3]
+2024-05-05T20:31:31.153309 update_cores parsec_canneal [2,3]
+2024-05-05T20:31:31.289873 update_cores parsec_canneal [1,2,3]
+2024-05-05T20:31:38.286238 update_cores parsec_canneal [2,3]
+2024-05-05T20:31:42.824893 end parsec_canneal
+2024-05-05T20:31:43.125233 start parsec_dedup [3] 4
+2024-05-05T20:31:43.522420 update_cores parsec_dedup [3]
+2024-05-05T20:31:45.113793 update_cores parsec_dedup [2,3]
+2024-05-05T20:31:52.120892 update_cores parsec_dedup [3]
+2024-05-05T20:32:02.740127 update_cores parsec_dedup [2,3]
+2024-05-05T20:32:02.875901 update_cores parsec_dedup [1,2,3]
+2024-05-05T20:32:11.811456 end parsec_dedup
+2024-05-05T20:32:12.050495 start parsec_ferret [2,3] 4
+2024-05-05T20:32:12.437386 update_cores parsec_ferret [2,3]
+2024-05-05T20:32:13.288724 update_cores parsec_ferret [1,2,3]
+2024-05-05T20:32:13.424930 update_cores parsec_ferret [2,3]
+2024-05-05T20:32:23.271203 update_cores parsec_ferret [1,2,3]
+2024-05-05T20:32:32.043401 update_cores parsec_ferret [2,3]
+2024-05-05T20:32:51.952471 update_cores parsec_ferret [1,2,3]
+2024-05-05T20:33:42.146300 update_cores parsec_ferret [2,3]
+2024-05-05T20:33:42.281994 update_cores parsec_ferret [1,2,3]
+2024-05-05T20:33:42.779736 update_cores parsec_ferret [2,3]
+2024-05-05T20:33:49.389127 update_cores parsec_ferret [1,2,3]
+2024-05-05T20:33:49.891034 update_cores parsec_ferret [2,3]
+2024-05-05T20:34:02.268114 update_cores parsec_ferret [1,2,3]
+2024-05-05T20:34:22.235742 update_cores parsec_ferret [2,3]
+2024-05-05T20:34:32.451436 update_cores parsec_ferret [1,2,3]
+2024-05-05T20:34:52.045685 update_cores parsec_ferret [2,3]
+2024-05-05T20:35:02.261677 update_cores parsec_ferret [1,2,3]
+2024-05-05T20:35:05.600810 end parsec_ferret
+2024-05-05T20:35:05.950250 start parsec_freqmine [2,3] 4
+2024-05-05T20:35:42.007472 update_cores parsec_freqmine [2,3]
+2024-05-05T20:35:52.216381 update_cores parsec_freqmine [1,2,3]
+2024-05-05T20:36:52.216379 update_cores parsec_freqmine [2,3]
+2024-05-05T20:37:07.803899 update_cores parsec_freqmine [1,2,3]
+2024-05-05T20:37:11.907292 update_cores parsec_freqmine [2,3]
+2024-05-05T20:37:41.917733 update_cores parsec_freqmine [1,2,3]
+2024-05-05T20:38:12.351359 update_cores parsec_freqmine [2,3]
+2024-05-05T20:38:22.181700 update_cores parsec_freqmine [1,2,3]
+2024-05-05T20:39:02.337481 update_cores parsec_freqmine [2,3]
+2024-05-05T20:39:12.409458 end parsec_freqmine
+2024-05-05T20:39:12.653237 start splash2x_radix [1,2,3] 4
+2024-05-05T20:39:14.113127 update_cores splash2x_radix [1,2,3]
+2024-05-05T20:39:14.244061 update_cores splash2x_radix [2,3]
+2024-05-05T20:39:14.396823 update_cores splash2x_radix [1,2,3]
+2024-05-05T20:39:14.884988 update_cores splash2x_radix [2,3]
+2024-05-05T20:39:24.334430 update_cores splash2x_radix [1,2,3]
+2024-05-05T20:39:28.419724 end splash2x_radix
+2024-05-05T20:39:28.661658 start parsec_vips [2,3] 4
+2024-05-05T20:39:31.920416 update_cores parsec_vips [2,3]
+2024-05-05T20:39:43.317034 update_cores parsec_vips [1,2,3]
+2024-05-05T20:40:23.028052 end parsec_vips
+2024-05-05T20:40:23.028075 end scheduler

@@ -1,6 +1,9 @@
 import psutil, time, sys
 import threading
 
+HIGH_CPU_FLAG = 1
+LOW_CPU_FLAG = 0
+
 '''
     Resource Alert
 '''
@@ -19,9 +22,9 @@ class ResourceAlert:
         self.proc_avg_cpu_util_ = 0.0
 
         #
-        self.default_cpu_set_ = '0-3'
-        self.low_cpu_set_ = '0-1'
-        self.default_ = True
+        self.default_cpu_set_ = HIGH_CPU_FLAG
+        self.low_cpu_set_ = LOW_CPU_FLAG
+        self.core_num_ = 4
 
         #
         self.cpu_threshold_high_ = threshold_high
@@ -33,14 +36,24 @@ class ResourceAlert:
                 return proc.pid
         assert False, self.pname_+" process not found"
     
-    def change_cpu_affinity(self, cpu_affinity: list[int]):
+    def _change_cpu_affinity(self, cpu_affinity: int):
         """change cpu affinity of the process alterting, may not be necessary
 
         Args:
-            cpu_affinity (list[int]): _description_
+            cpu_affinity (int): 0 for low cpu set (0-1) and 1 for default cpu set (0-3)
         """
-        p = psutil.Process(self.pid_)
-        p.cpu_affinity(cpu_affinity)
+        if (cpu_affinity == LOW_CPU_FLAG and self.core_num_ > 2):
+            p = psutil.Process(self.pid_)   
+            p.cpu_affinity([0, 1])
+            self.core_num_ = 2
+            print("[INFO]: update memcached to 2 cores")
+        elif (cpu_affinity == HIGH_CPU_FLAG and self.core_num_ < 4):
+            p = psutil.Process(self.pid_)
+            p.cpu_affinity([0, 1, 2, 3])
+            self.core_num_ = 4
+            print("[INFO]: update memcached to 4 cores")
+        else:
+            return
     
     def get_instant_proc_cpu_util(self) -> float:
         proc = psutil.Process(self.pid_)
@@ -65,11 +78,12 @@ class ResourceAlert:
         with self.util_lock_:
             return self.proc_avg_cpu_util_
     
-    def evaluate(self, used_core_num: int) -> int:
+    def evaluate(self, used_core_num: int, other_cpu_util: float) -> int:
         """evaulate system condition
 
         Args:
             used_core_num (int): used core num by jobs
+            other_cpu_util (float): cpu utils by jobs
 
         Returns:
             int: evaluation, the recommended cpu_flag for the jobs
@@ -80,51 +94,74 @@ class ResourceAlert:
                  4: continue
         """
 
-        proc_util = self.get_instant_avg_cpu_util()  # TODO: which cpu util to use?
+        # total util, job util and proc util do not follow a relation due to the different calculation methods
         total_util = self.get_instant_total_cpu_util()
 
+        proc_util = self.get_instant_avg_cpu_util()  # TODO: which cpu util to use?
+        proc_util_rate = proc_util/(self.core_num_*100.0)
+
+        # use docker stats to monitor container cpu usage
         job_util = total_util - proc_util if used_core_num > 0 else 0
+        job_util = other_cpu_util if other_cpu_util > 0 else job_util
         job_util_rate = job_util/(used_core_num*100.0) if used_core_num > 0 else 0
 
-        print("[INFO]: memcached util:\t"+str(proc_util))
-        print("[INFO]: total util:\t"+str(total_util))
+        print("[INFO]: memcached util:\t"+str(proc_util)+"/"+str(self.core_num_*100.0))
+        print("[INFO]: total util:\t"+str(total_util)+"/"+str(4*100.0))
         print("[INFO]: job util:\t"+str(job_util)+"/"+str(used_core_num*100.0))
 
-        # < 50 TODO: potentially downgrade proc cpu set
+        # < 50
         if (proc_util < self.cpu_threshold_low_):
+            self._change_cpu_affinity(self.low_cpu_set_)
             return 3
         
         # > 300 TODO: potentially upgrade proc cpu set
         if (proc_util >= self.cpu_threshold_high_):
+            self._change_cpu_affinity(self.default_cpu_set_)
             return 0
         
-        # 50 - 300 TODO: dynamic adjust threshold
+        # 50 - 300 TODO: dynamically adjust threshold?
         if (proc_util >= self.cpu_threshold_low_ and proc_util < self.cpu_threshold_high_):
             # 200 - 300
             if (proc_util >= 200.0):
+                self._change_cpu_affinity(self.default_cpu_set_)
                 return 1
             
             # 150 - 200 TODO: optimize?
-            if (proc_util >= 150.0):
+            elif (proc_util >= 150.0):
+                self._change_cpu_affinity(self.default_cpu_set_)
                 if (used_core_num > 2):
                     return 2
-                
-                return 2 if job_util_rate >= 1.1 else 1
+                elif (used_core_num == 2):
+                    return 2 if job_util_rate >= 0.75 else 1
+                elif (used_core_num == 1):
+                    return 2 if job_util_rate >= 2.0 else 1
+                else:
+                    return 1
             
             # 100 - 150
-            if (proc_util >= 100):
+            elif (proc_util >= 100):
+                if (proc_util_rate >= 0.7):
+                    self._change_cpu_affinity(self.default_cpu_set_)
                 if (used_core_num > 2):
                     return 2
-                
-                return 2 if job_util_rate >= 1.0 else 1
-            
+                elif (used_core_num == 2):
+                    return 2 if job_util_rate >= 0.65 else 1
+                elif (used_core_num == 1):
+                    return 2 if job_util_rate >= 1.5 else 1
+                else:
+                    return 1
+
             # 50 - 100
-            if (proc_util >= 50.0):
+            elif (proc_util >= 50.0):
                 if (used_core_num > 2):
-                    return 3 if job_util_rate >= 0.9 else 2
-                
-                return 2
-                
+                    return 3 if job_util_rate >= 1.0 and proc_util <= 75.0 else 2
+                elif (used_core_num == 2):
+                    return 3 if job_util_rate >= 1.3 and proc_util <= 75.0 else 2
+                else:
+                    return 2
+            else:
+                pass
+
         # otherwise
         return 0
     
