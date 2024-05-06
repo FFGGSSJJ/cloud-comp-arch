@@ -12,8 +12,10 @@ def cpu_flag2str(cpu_flag: int) -> list[str]:
         return ["3"]
     elif (cpu_flag == 2):
         return ["2", "3"]
-    else:
+    elif (cpu_flag == 3):
         return ["1", "2", "3"]
+    else:
+        return ["1", "2", "3", "4"]
     
 
 
@@ -25,6 +27,7 @@ class DynamicScheduler:
     # make these static
     client_ = docker.from_env()
     cpu_flag_ = 2    # 0-2, refers to core num
+    full_cpu_set_ = '0-3'
     high_cpu_set_ = '1-3'
     default_cpu_set_ = '2-3'
     low_cpu_set_ = '3'
@@ -33,7 +36,7 @@ class DynamicScheduler:
     def __init__(self, tags: list[str], containers_info: dict, log_cnt: int) -> None:
         self.img_tags_ = tags
         self.containerId_dict = {}  # TODO: should i store the id or cache the obj?
-        self.sched_logger = scheduler_logger.SchedulerLogger(f"job_{log_cnt}.txt")
+        self.sched_logger = scheduler_logger.SchedulerLogger(f"logs/job_{log_cnt}.txt")
 
         try:
             self.init_scheduler(containers_info, True)
@@ -125,7 +128,16 @@ class DynamicScheduler:
     def get_container_status(self, containerId) -> str:
         return self.client_.containers.get(containerId).status
     
+    def get_container_stats(self, containerId):
+        containerObj = self.client_.containers.get(containerId)
+        if containerObj.status != "exited" or containerObj.status != "paused":
+            return containerObj.stats(stream=False, one_shot=True)
+        return None
+    
     def calc_container_util(self, pre_util, cur_util) -> float:
+        if (pre_util == None):
+            return 0.0
+        
         try:
             delta_container_usage = cur_util['cpu_stats']['cpu_usage']['total_usage'] - pre_util['cpu_stats']['cpu_usage']['total_usage']
             delta_system_usage = cur_util['cpu_stats']['system_cpu_usage'] - pre_util['cpu_stats']['system_cpu_usage']
@@ -162,11 +174,11 @@ class DynamicScheduler:
             self.start_container(self.containerId_dict[img])
             loggerfd.write(img+" starts at: "+str(job_start)+"\n")
 
-            pre_util = dSched.client_.api.stats(img, stream=False, one_shot=True)
+            pre_util = self.get_container_stats(self.containerId_dict[img])
             time.sleep(interval)
             while (self.get_container_status(self.containerId_dict[img]) != "exited"):
                 # collect system info
-                cur_util = dSched.client_.api.stats(img, stream=False, one_shot=True)
+                cur_util = self.get_container_stats(self.containerId_dict[img])
                 container_cpu_util = self.calc_container_util(pre_util, cur_util)
                 pre_util = cur_util
 
@@ -184,7 +196,7 @@ class DynamicScheduler:
                     continue
 
                 # evaluate system situation
-                if (eval == 3):
+                if (eval >= 3):
                     if (self.cpu_flag_ == 3):
                         time.sleep(interval)
                         continue
@@ -232,15 +244,165 @@ class DynamicScheduler:
         # clean containers
         self.delete_all()
 
-    # TODO
-    def multi_dynamic_schedule():
-        pass
+class MultiDynamicScheduler(DynamicScheduler):
+    
+
+    def __init__(self, tags: list[str], containers_info: dict, log_cnt: int, cpu_intensive_queue: list[str], cpu_friendly_queue: list[str]) -> None:
+        super().__init__(tags, containers_info, log_cnt)
+        
+        self.active_container_: str
+        self.idle_container_: str
+        self.cpu_intensive_flag_ = False
+
+        self.cpu_intensive_queue_ = cpu_intensive_queue
+        self.cpu_friendly_queue_ = cpu_friendly_queue
+
+    def launch_container(self, containerId):
+        # launch in default set
+        self.update_container(containerId, self.default_cpu_set_)
+        self.cpu_flag_ = 2
+
+        status = self.get_container_status(containerId)
+        if (status == "created"):
+            self.start_container(containerId)
+        elif (status == "paused"):
+            self.unpause_contaier(containerId)
+        else:
+            return
+
+    def switch_container(self):
+        if (self.idle_container_ != "empty"):
+            self.pause_container(self.containerId_dict[self.active_container_])
+            self.launch_container(self.containerId_dict[self.idle_container_])
+            # swap
+            self.cpu_intensive_flag_ = not self.cpu_intensive_flag_
+            self.active_container_, self.idle_container_ = self.idle_container_, self.active_container_
+        else:
+            return
+        
+
+    def multi_dynamic_schedule(self, interval: float = 0.25):
+        # open a logger
+        self.sched_logger.start()
+
+        # start memcached process monitor thread
+        memcachedAlt = resource_alert.ResourceAlert("memcached", 300.0, 50.0)
+        memcachedAlt_thread = threading.Thread(target=memcachedAlt.keep_alterting, args=(interval,), daemon=True)
+        memcachedAlt_thread.start()
+
+        # initialization
+        self.active_container_ = self.cpu_friendly_queue_[0]
+        self.idle_container_ = self.cpu_intensive_queue_[0]
+        self.start_container(self.containerId_dict[self.active_container_])
+        self.cpu_intensive_flag_ = False
+
+        # start scheduler
+        pre_util = self.get_container_stats(self.containerId_dict[self.active_container_])
+        while (len(self.cpu_friendly_queue_) > 0 or len(self.cpu_intensive_queue_) > 0):
+            # if current active container finishes
+            if (self.get_container_status(self.containerId_dict[self.active_container_]) == "exited"):
+                self.sched_logger.job_end(scheduler_logger.Job(self.active_container_))
+
+                # pop out finished job
+                if (self.cpu_intensive_flag_ and len(self.cpu_intensive_queue_) > 0):
+                    self.cpu_intensive_queue_.pop(0)
+                elif (not self.cpu_intensive_flag_ and len(self.cpu_friendly_queue_) > 0):
+                    self.cpu_friendly_queue_.pop(0)
+                else:
+                    pass
+                
+                # check stop condition
+                if (len(self.cpu_friendly_queue_) == 0 and len(self.cpu_intensive_queue_) == 0):
+                    break
+
+                # determine next active/idle container
+                self.active_container_ = self.cpu_friendly_queue_[0] if len(self.cpu_friendly_queue_) > 0 else self.cpu_intensive_queue_[0]
+                self.cpu_intensive_flag_ = (len(self.cpu_friendly_queue_) == 0)
+                self.idle_container_ = self.cpu_intensive_queue_[0] if len(self.cpu_intensive_queue_) > 0 else "empty"
+                self.launch_container(self.containerId_dict[self.active_container_])
+                pre_util = self.get_container_stats(self.containerId_dict[self.active_container_])
+                time.sleep(interval)
+                continue
+            
+            # orchestration starts here
+
+            # collect system info
+            cur_util = self.get_container_stats(self.containerId_dict[self.active_container_])
+            container_cpu_util = self.calc_container_util(pre_util, cur_util)
+            pre_util = cur_util
+
+            eval = memcachedAlt.evaluate(self.cpu_flag_, container_cpu_util)
+
+            # if current container is paused
+            if (self.get_container_status(self.containerId_dict[self.active_container_]) == "paused"):
+                # check feasibility to unpause
+                if (eval >= 2):
+                    self.cpu_flag_ = 2
+                    self.launch_container(self.containerId_dict[self.active_container_])
+                time.sleep(interval)
+                continue
+
+            # evaluate system situation
+            if (eval == 4):
+                if (not self.cpu_intensive_flag_):
+                    self.switch_container()
+                if (self.cpu_flag_ == 4):
+                    time.sleep(interval)
+                    continue
+                print("[DEBUG]:\thealthy 4")
+                self.update_container(self.containerId_dict[self.active_container_], self.full_cpu_set_)
+                self.cpu_flag_ = 4
+            
+            if (eval == 3):
+                if (not self.cpu_intensive_flag_):
+                    self.switch_container()
+                if (self.cpu_flag_ == 3):
+                    time.sleep(interval)
+                    continue
+
+                print("[DEBUG]:\thealthy 3")
+                self.update_container(self.containerId_dict[self.active_container_], self.high_cpu_set_)
+                self.cpu_flag_ = 3
+            
+            if (eval == 2):
+                if (self.cpu_flag_ == 2):
+                    time.sleep(interval)
+                    continue
+
+                print("[DEBUG]:\thealthy 2")
+                self.update_container(self.containerId_dict[self.active_container_], self.default_cpu_set_)
+                self.cpu_flag_ = 2
+
+            if (eval == 1):
+                if (self.cpu_intensive_flag_):
+                    self.switch_container()
+                if (self.cpu_flag_ == 1):
+                    time.sleep(interval)
+                    continue
+
+                print("[DEBUG]:\thealthy 1")
+                self.update_container(self.containerId_dict[self.active_container_], self.low_cpu_set_)
+                self.cpu_flag_ = 1
+            
+            if (eval == 0):
+                print("[DEBUG]:\thealthy 0")
+                self.pause_container(self.containerId_dict[self.active_container_])
+                self.cpu_flag_ = 0
+
+        self.sched_logger.end()
+
+         # clean containers
+        self.delete_all()
 
 
 if __name__ == "__main__":
 
     parsec_apps_tags = ['parsec_blackscholes', 'parsec_canneal', 'parsec_dedup', 'parsec_ferret', 'parsec_freqmine', 'splash2x_radix', 'parsec_vips']
     order_list = ['parsec_blackscholes', 'parsec_canneal', 'parsec_dedup', 'parsec_ferret', 'parsec_freqmine', 'splash2x_radix', 'parsec_vips']
+
+    cpu_intensive_list = ['parsec_dedup', 'parsec_ferret', 'parsec_freqmine']
+    cpu_friendly_list = ['parsec_blackscholes', 'parsec_canneal', 'splash2x_radix', 'parsec_vips']
+
     json_file = open("howto.json")
     containerJson = json.load(json_file)
     log_cnt = int(sys.argv[1])
@@ -249,13 +411,16 @@ if __name__ == "__main__":
         print(key)
         print(containerJson[key])
 
-    dSched = DynamicScheduler(parsec_apps_tags, containerJson, log_cnt)
+    # dSched = DynamicScheduler(parsec_apps_tags, containerJson, log_cnt)
+    mSched = MultiDynamicScheduler(parsec_apps_tags, containerJson, log_cnt, cpu_intensive_list, cpu_friendly_list)
     try:
-        dSched.seq_dynamic_schedule(order_list, 0.25)
+        # dSched.seq_dynamic_schedule(order_list, 0.25)
+        mSched.multi_dynamic_schedule(0.25)
     except Exception as e:
         print("[DEBUG]: Scheduler Failed")
         print(e.message) if hasattr(e, 'message') else print(e)
-        dSched.delete_all()
+        # dSched.delete_all()
+        mSched.delete_all()
 
     
 

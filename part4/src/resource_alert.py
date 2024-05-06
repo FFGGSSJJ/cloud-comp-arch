@@ -91,7 +91,7 @@ class ResourceAlert:
                  1: intermediate bad, update job cpu set to low_cpu_set -> 1 core
                  2: intermediate good, update job cpu set to default_cpu_set -> 2 cores
                  3: good, update job cpu set to high_cpu_set -> 3 cores
-                 4: continue
+                 4: TODO
         """
 
         # total util, job util and proc util do not follow a relation due to the different calculation methods
@@ -108,6 +108,11 @@ class ResourceAlert:
         print("[INFO]: memcached util:\t"+str(proc_util)+"/"+str(self.core_num_*100.0))
         print("[INFO]: total util:\t"+str(total_util)+"/"+str(4*100.0))
         print("[INFO]: job util:\t"+str(job_util)+"/"+str(used_core_num*100.0))
+
+        # < 25
+        if (proc_util < self.cpu_threshold_low_/2):
+            self._change_cpu_affinity(self.low_cpu_set_)
+            return 4
 
         # < 50
         if (proc_util < self.cpu_threshold_low_):
@@ -147,16 +152,16 @@ class ResourceAlert:
                 elif (used_core_num == 2):
                     return 2 if job_util_rate >= 0.65 else 1
                 elif (used_core_num == 1):
-                    return 2 if job_util_rate >= 1.5 else 1
+                    return 2 if job_util_rate >= 1.2 else 1
                 else:
                     return 1
 
-            # 50 - 100
+            # 50 - 100 TODO: optimize!
             elif (proc_util >= 50.0):
                 if (used_core_num > 2):
                     return 3 if job_util_rate >= 1.0 and proc_util <= 75.0 else 2
                 elif (used_core_num == 2):
-                    return 3 if job_util_rate >= 1.3 and proc_util <= 75.0 else 2
+                    return 3 if job_util_rate >= 1.0 and proc_util <= 75.0 else 2
                 else:
                     return 2
             else:
