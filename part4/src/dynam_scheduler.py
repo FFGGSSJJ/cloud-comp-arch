@@ -98,41 +98,53 @@ class DynamicScheduler:
 
     # update the container
     def update_container(self, containerId, cpu_set: str):
-        containerObj = self.client_.containers.get(containerId)
-        if (containerObj.status == "exited"):
-            return
-        containerObj.update(cpuset_cpus=cpu_set)
-
-        self.sched_logger.update_cores(scheduler_logger.Job(containerObj.name), cpu_flag2str(self.cpu_flag_))
-        print("[INFO]: update " + containerObj.name + " to " + cpu_set)
-        
+        try:
+            containerObj = self.client_.containers.get(containerId)
+            if (containerObj.status != "exited"):
+                containerObj.update(cpuset_cpus=cpu_set)
+                print("[INFO]: update " + containerObj.name + " to " + cpu_set)
+                self.sched_logger.update_cores(scheduler_logger.Job(containerObj.name), cpu_flag2str(self.cpu_flag_))
+        except docker.errors.APIError as e:
+            print(f"[DEBUG]: API error occurred - {e}, pass")
+        except:
+            print("[DEBUG]: update failed, pass")
 
     def pause_container(self, containerId):
-        containerObj = self.client_.containers.get(containerId)
-        if (containerObj.status == "paused" or containerObj.status == "exited"):
-            return
-        else:
-            containerObj.pause()
-
-            self.sched_logger.job_pause(scheduler_logger.Job(containerObj.name))
-            print("[INFO]: pause " + containerObj.name)
+        try:
+            containerObj = self.client_.containers.get(containerId)
+            if (containerObj.status == "paused" or containerObj.status == "exited"):
+                return
+            else:
+                containerObj.pause()
+                self.sched_logger.job_pause(scheduler_logger.Job(containerObj.name))
+                print("[INFO]: pause " + containerObj.name)
+        except docker.errors.APIError as e:
+            print(f"[DEBUG]: API error occurred - {e}")
+        except:
+            print("[DEBUG]: pause container failed, pass")
 
     def unpause_contaier(self, containerId):
-        containerObj = self.client_.containers.get(containerId)
-        if (containerObj.status == "paused"):
-            containerObj.unpause()
+        try:
+            containerObj = self.client_.containers.get(containerId)
+            if (containerObj.status == "paused"):
+                containerObj.unpause()
 
-            self.sched_logger.job_unpause(scheduler_logger.Job(containerObj.name))
-            print("[INFO]: unpause " + containerObj.name)
+                self.sched_logger.job_unpause(scheduler_logger.Job(containerObj.name))
+                print("[INFO]: unpause " + containerObj.name)
+        except:
+            print("[DEBUG]: unpause container failed, pass")
 
     def get_container_status(self, containerId) -> str:
         return self.client_.containers.get(containerId).status
     
     def get_container_stats(self, containerId):
         containerObj = self.client_.containers.get(containerId)
-        if containerObj.status != "exited" or containerObj.status != "paused":
-            return containerObj.stats(stream=False, one_shot=True)
-        return None
+        try:
+            if containerObj.status != "exited" or containerObj.status != "paused":
+                return containerObj.stats(stream=False, one_shot=True)
+            return None
+        except:
+            return None
     
     def calc_container_util(self, pre_util, cur_util) -> float:
         if (pre_util == None):
@@ -187,7 +199,7 @@ class DynamicScheduler:
                 # if current container is paused
                 if (self.get_container_status(self.containerId_dict[img]) == "paused"):
                     # check feasibility to unpause
-                    if (eval >= 2):
+                    if (eval >= memcachedAlt.Eval.Medium):
                         self.cpu_flag_ = 2
                         self.update_container(self.containerId_dict[img], self.default_cpu_set_)
                         self.unpause_contaier(self.containerId_dict[img])
@@ -196,7 +208,7 @@ class DynamicScheduler:
                     continue
 
                 # evaluate system situation
-                if (eval >= 3):
+                if (eval >= memcachedAlt.Eval.Good):
                     if (self.cpu_flag_ == 3):
                         time.sleep(interval)
                         continue
@@ -204,7 +216,7 @@ class DynamicScheduler:
                     self.update_container(self.containerId_dict[img], self.high_cpu_set_)
                     self.cpu_flag_ = 3
 
-                if (eval == 2):
+                if (eval == memcachedAlt.Eval.Medium):
                     if (self.cpu_flag_ == 2):
                         time.sleep(interval)
                         continue
@@ -212,7 +224,7 @@ class DynamicScheduler:
                     self.update_container(self.containerId_dict[img], self.default_cpu_set_)
                     self.cpu_flag_ = 2
 
-                if (eval == 1):
+                if (eval == memcachedAlt.Eval.Mild):
                     if (self.cpu_flag_ == 1):
                         time.sleep(interval)
                         continue
@@ -220,7 +232,7 @@ class DynamicScheduler:
                     self.update_container(self.containerId_dict[img], self.low_cpu_set_)
                     self.cpu_flag_ = 1
 
-                if (eval == 0):
+                if (eval == memcachedAlt.Eval.Bad):
                     print("[DEBUG]:\thealthy 0")
                     self.pause_container(self.containerId_dict[img])
                     self.cpu_flag_ = 0
@@ -336,14 +348,14 @@ class MultiDynamicScheduler(DynamicScheduler):
             # if current container is paused
             if (self.get_container_status(self.containerId_dict[self.active_container_]) == "paused"):
                 # check feasibility to unpause
-                if (eval >= 2):
+                if (eval >= memcachedAlt.Eval.Medium):
                     self.cpu_flag_ = 2
                     self.launch_container(self.containerId_dict[self.active_container_])
                 time.sleep(interval)
                 continue
 
             # evaluate system situation
-            if (eval == 4):
+            if (eval == memcachedAlt.Eval.Full):
                 if (not self.cpu_intensive_flag_):
                     self.switch_container()
                 if (self.cpu_flag_ == 4):
@@ -353,7 +365,7 @@ class MultiDynamicScheduler(DynamicScheduler):
                 self.update_container(self.containerId_dict[self.active_container_], self.full_cpu_set_)
                 self.cpu_flag_ = 4
             
-            if (eval == 3):
+            if (eval == memcachedAlt.Eval.Good):
                 if (not self.cpu_intensive_flag_):
                     self.switch_container()
                 if (self.cpu_flag_ == 3):
@@ -364,7 +376,7 @@ class MultiDynamicScheduler(DynamicScheduler):
                 self.update_container(self.containerId_dict[self.active_container_], self.high_cpu_set_)
                 self.cpu_flag_ = 3
             
-            if (eval == 2):
+            if (eval == memcachedAlt.Eval.Medium):
                 if (self.cpu_flag_ == 2):
                     time.sleep(interval)
                     continue
@@ -373,7 +385,7 @@ class MultiDynamicScheduler(DynamicScheduler):
                 self.update_container(self.containerId_dict[self.active_container_], self.default_cpu_set_)
                 self.cpu_flag_ = 2
 
-            if (eval == 1):
+            if (eval == memcachedAlt.Eval.Mild):
                 if (self.cpu_intensive_flag_):
                     self.switch_container()
                 if (self.cpu_flag_ == 1):
@@ -384,7 +396,7 @@ class MultiDynamicScheduler(DynamicScheduler):
                 self.update_container(self.containerId_dict[self.active_container_], self.low_cpu_set_)
                 self.cpu_flag_ = 1
             
-            if (eval == 0):
+            if (eval == memcachedAlt.Eval.Bad):
                 print("[DEBUG]:\thealthy 0")
                 self.pause_container(self.containerId_dict[self.active_container_])
                 self.cpu_flag_ = 0

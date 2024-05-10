@@ -1,13 +1,21 @@
-import psutil, time, sys
+import psutil, time, sys, enum
 import threading
 
-HIGH_CPU_FLAG = 1
-LOW_CPU_FLAG = 0
 
 '''
     Resource Alert
 '''
 class ResourceAlert:
+
+    class Eval(enum.Enum):
+        Full = 4
+        Good = 3
+        Medium = 2
+        Mild = 1
+        Bad = 0
+    
+    HIGH_CPU_FLAG = 1
+    LOW_CPU_FLAG = 0
 
     # cpu_threshold_high_: float
     # cpu_threshold_low_: float
@@ -22,8 +30,8 @@ class ResourceAlert:
         self.proc_avg_cpu_util_ = 0.0
 
         #
-        self.default_cpu_set_ = HIGH_CPU_FLAG
-        self.low_cpu_set_ = LOW_CPU_FLAG
+        self.default_cpu_set_ = self.HIGH_CPU_FLAG
+        self.low_cpu_set_ = self.LOW_CPU_FLAG
         self.core_num_ = 4
 
         #
@@ -42,12 +50,12 @@ class ResourceAlert:
         Args:
             cpu_affinity (int): 0 for low cpu set (0-1) and 1 for default cpu set (0-3)
         """
-        if (cpu_affinity == LOW_CPU_FLAG and self.core_num_ > 2):
+        if (cpu_affinity == self.LOW_CPU_FLAG and self.core_num_ > 2):
             p = psutil.Process(self.pid_)   
             p.cpu_affinity([0, 1])
             self.core_num_ = 2
             print("[INFO]: update memcached to 2 cores")
-        elif (cpu_affinity == HIGH_CPU_FLAG and self.core_num_ < 4):
+        elif (cpu_affinity == self.HIGH_CPU_FLAG and self.core_num_ < 4):
             p = psutil.Process(self.pid_)
             p.cpu_affinity([0, 1, 2, 3])
             self.core_num_ = 4
@@ -112,63 +120,64 @@ class ResourceAlert:
         # < 25
         if (proc_util < self.cpu_threshold_low_/2):
             self._change_cpu_affinity(self.low_cpu_set_)
-            return 4
+            return self.Eval.Full
+
 
         # < 50
         if (proc_util < self.cpu_threshold_low_):
             self._change_cpu_affinity(self.low_cpu_set_)
-            return 3
+            return self.Eval.Good
         
         # > 300 TODO: potentially upgrade proc cpu set
         if (proc_util >= self.cpu_threshold_high_):
             self._change_cpu_affinity(self.default_cpu_set_)
-            return 0
+            return self.Eval.Bad
         
         # 50 - 300 TODO: dynamically adjust threshold?
         if (proc_util >= self.cpu_threshold_low_ and proc_util < self.cpu_threshold_high_):
             # 200 - 300
             if (proc_util >= 200.0):
                 self._change_cpu_affinity(self.default_cpu_set_)
-                return 1
+                return self.Eval.Mild
             
             # 150 - 200 TODO: optimize?
             elif (proc_util >= 150.0):
                 self._change_cpu_affinity(self.default_cpu_set_)
                 if (used_core_num > 2):
-                    return 2
+                    return self.Eval.Medium
                 elif (used_core_num == 2):
-                    return 2 if job_util_rate >= 0.75 else 1
+                    return self.Eval.Medium if job_util_rate >= 0.75 else self.Eval.Mild
                 elif (used_core_num == 1):
-                    return 2 if job_util_rate >= 2.0 else 1
+                    return self.Eval.Medium if job_util_rate >= 2.0 else self.Eval.Mild
                 else:
-                    return 1
+                    return self.Eval.Mild
             
             # 100 - 150
             elif (proc_util >= 100):
                 if (proc_util_rate >= 0.7):
                     self._change_cpu_affinity(self.default_cpu_set_)
                 if (used_core_num > 2):
-                    return 2
+                    return self.Eval.Medium
                 elif (used_core_num == 2):
-                    return 2 if job_util_rate >= 0.65 else 1
+                    return self.Eval.Medium if job_util_rate >= 0.65 else self.Eval.Mild
                 elif (used_core_num == 1):
-                    return 2 if job_util_rate >= 1.2 else 1
+                    return self.Eval.Medium if job_util_rate >= 1.2 else self.Eval.Mild
                 else:
-                    return 1
+                    return self.Eval.Mild
 
             # 50 - 100 TODO: optimize!
             elif (proc_util >= 50.0):
                 if (used_core_num > 2):
-                    return 3 if job_util_rate >= 1.0 and proc_util <= 75.0 else 2
+                    return self.Eval.Good if job_util_rate >= 1.0 and proc_util <= 75.0 else self.Eval.Medium
                 elif (used_core_num == 2):
-                    return 3 if job_util_rate >= 1.0 and proc_util <= 75.0 else 2
+                    return self.Eval.Good if job_util_rate >= 1.0 and proc_util <= 75.0 else self.Eval.Medium
                 else:
-                    return 2
+                    return self.Eval.Medium
             else:
                 pass
 
         # otherwise
-        return 0
+        return self.Eval.Bad
     
     def keep_alterting(self, interval: float = 0.25):
         while True:
