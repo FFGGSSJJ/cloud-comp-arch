@@ -13,9 +13,9 @@ def timestamp_to_seconds(timestamp):
 
 # Define the list of file paths
 json_file_paths = [
-    'part_3_results_group_088/last_results/pods_1.json',
-    'part_3_results_group_088/last_results/pods_2.json',
-    'part_3_results_group_088/last_results/pods_3.json'
+    'part_3_results_group_088/pods_1.json',
+    'part_3_results_group_088/pods_2.json',
+    'part_3_results_group_088/pods_3.json'
 ]
 
 txt_file_paths = [
@@ -73,7 +73,7 @@ for i in range(3):
         # print(f"{job}: Starts at {times['startedAt']}, Finishes at {times['finishedAt']}")
     print(pods)
 
-    keys_order = ['blackscholes', 'vips', 'freqmine', 'dedup', 'radix', 'ferret', 'canneal']
+    # keys_order = ['blackscholes', 'vips', 'freqmine', 'dedup', 'radix', 'ferret', 'canneal']
     keys_order = ['blackscholes', 'vips', 'freqmine', 'radix', 'ferret', 'dedup', 'canneal']
     ordered_pods = {}
     for ordered_job in keys_order:
@@ -107,18 +107,19 @@ for i in range(3):
     plt.figure(figsize=(10, 2))
     plt.bar(bar_centers, selected_columns['p95'], width=bar_widths, color='#FF8884', edgecolor='none')
 
-    plt.xlabel('Time (s)', fontweight='bold', fontsize=12, fontname='Times New Roman')
-    plt.ylabel('p95 Latency (ms)', fontweight='bold', fontsize=12, fontname='Times New Roman')
+    plt.xlabel('Time (s)', fontweight='bold', fontsize=12, fontname='Times New Roman', labelpad=-12, horizontalalignment='right', x=1.0)
+    plt.ylabel('95th Percentile\nLatency (ms)', fontweight='bold', fontsize=12, fontname='Times New Roman')
     # plt.title('p95 Latency Over Time_Run{}'.format(i+1), fontweight='bold', fontsize=16, fontname='Times New Roman')
 
     # Adjust tick labels to be bold and Times New Roman
     plt.xticks(fontweight='bold', fontsize=12, fontname='Times New Roman')
     plt.yticks([0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6], fontweight='bold', fontsize=12, fontname='Times New Roman')
 
-    plt.xlim(0, 220)
+    plt.xlim(0, 230)
     plt.grid(False)
 
-    plt.tight_layout()
+    # plt.tight_layout()
+    # plt.gcf().subplots_adjust(bottom=0.1)
     plt.savefig('./part3_1_figures/LatencyOverTime_Run{}.png'.format(i+1), dpi=1200)
     plt.show()
 
@@ -135,14 +136,15 @@ for i in range(3):
         ax.barh(job_name, duration, left=start, color=colors[job_name], edgecolor='none')
         ax.text(start + duration + 4, job_name, node, va='center', fontweight='bold', fontsize=12, fontname='Times New Roman')  
 
-    ax.set_xlabel('Time (s)', fontweight='bold', fontsize=12, fontname='Times New Roman')
+    ax.set_xlabel('Time (s)', fontweight='bold', fontsize=12, fontname='Times New Roman', labelpad=-12, horizontalalignment='right', x=1.0)
     ax.set_ylabel('Job Name', fontweight='bold', fontsize=12, fontname='Times New Roman')
     # ax.set_title('Batch Job Execution Timeline_Run{}'.format(i+1), fontweight='bold', fontsize=16, fontname='Times New Roman')
 
     ax.tick_params(axis='both', labelsize=12, labelfontfamily='Times New Roman', labelcolor='black')
-    ax.set_xlim(0, 220)  
+    ax.set_xlim(0, 230)  
 
-    plt.tight_layout()
+    # plt.tight_layout()
+    # plt.gcf().subplots_adjust(bottom=0.1)
     plt.savefig('./part3_1_figures/Batch Job Execution Timeline_Run{}.png'.format(i+1), dpi=1200)
     plt.show()
 
