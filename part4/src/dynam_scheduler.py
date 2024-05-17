@@ -10,7 +10,8 @@ img_prefix = 'anakli/cca:'
 
 def parse_arguments():
     parser = argparse.ArgumentParser(description='Dynamic Scheduler Options')
-    parser.add_argument('--count', help='log number count', type=int)
+    parser.add_argument('--count', help='Log number count', type=int)
+    parser.add_argument('--interval', help='The monitoring interval', type=float, default=0.25)
     parser.add_argument('--seq', help='Use the sequential scheduler', action='store_true')
     parser.add_argument('--mul', help='Use the multi-switch scheduler', action='store_true')
     return parser.parse_args()
@@ -416,25 +417,24 @@ if __name__ == "__main__":
     order_list = ['parsec_blackscholes', 'parsec_canneal', 'parsec_dedup', 'parsec_ferret', 'parsec_freqmine', 'splash2x_radix', 'parsec_vips']
     time_order_list = ['parsec_freqmine', 'parsec_ferret', 'parsec_canneal', 'parsec_blackscholes', 'parsec_vips', 'parsec_dedup', 'splash2x_radix']
 
+    # predetermined queues
     cpu_intensive_list = ['parsec_dedup', 'parsec_ferret', 'parsec_freqmine']
     cpu_friendly_list = ['parsec_canneal', 'parsec_blackscholes', 'parsec_vips', 'splash2x_radix']
 
     the_args = parse_arguments()
     log_cnt = the_args.count
     
-    json_file = open("howto.json")
+    json_file = open("job_init.json")
     containerJson = json.load(json_file)
 
-    for key in containerJson:
-        print(key)
-        print(containerJson[key])
+    print(the_args)
+    pass
 
     if (the_args.seq):
         dSched = DynamicScheduler(parsec_apps_tags, containerJson, log_cnt)
         try:
             random.shuffle(order_list)
-            print(order_list)
-            dSched.seq_dynamic_schedule(order_list, 0.25)
+            dSched.seq_dynamic_schedule(order_list, float(the_args.interval))
         except Exception as e:
             print("[DEBUG]: Seq Scheduler Failed")
             print(e.message) if hasattr(e, 'message') else print(e)
@@ -442,9 +442,7 @@ if __name__ == "__main__":
     else:
         mSched = MultiDynamicScheduler(parsec_apps_tags, containerJson, log_cnt, cpu_intensive_list, cpu_friendly_list)
         try:
-            random.shuffle(order_list)
-            print(order_list)
-            mSched.multi_dynamic_schedule(0.25)
+            mSched.multi_dynamic_schedule(float(the_args.interval))
         except Exception as e:
             print("[DEBUG]: Mul Scheduler Failed")
             print(e.message) if hasattr(e, 'message') else print(e)

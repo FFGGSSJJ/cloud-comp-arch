@@ -55,25 +55,28 @@ class ResourceAlert:
         Args:
             cpu_affinity (int): 0 for low cpu set (0-1) and 1 for default cpu set (0-3)
         """
-        if (cpu_affinity == self.MIN_CPU_FLAG and self.core_num_ > 1):
-            p = psutil.Process(self.pid_)   
-            p.cpu_affinity([0])
-            self.core_num_ = 1
-            self.sched_logger.update_cores(scheduler_logger.Job("memcached"), scheduler_logger.cpu_flag2str(1))
-            print("[INFO]: update memcached to 1 core")
-        elif (cpu_affinity == self.LOW_CPU_FLAG and self.core_num_ != 2):
-            p = psutil.Process(self.pid_)   
-            p.cpu_affinity([0, 1])
-            self.core_num_ = 2
-            self.sched_logger.update_cores(scheduler_logger.Job("memcached"), scheduler_logger.cpu_flag2str(2))
-            print("[INFO]: update memcached to 2 cores")
-        elif (cpu_affinity == self.HIGH_CPU_FLAG and self.core_num_ < 4):
-            p = psutil.Process(self.pid_)
-            p.cpu_affinity([0, 1, 2, 3])
-            self.core_num_ = 4
-            self.sched_logger.update_cores(scheduler_logger.Job("memcached"), scheduler_logger.cpu_flag2str(4))
-            print("[INFO]: update memcached to 4 cores")
-        else:
+        try:
+            if (cpu_affinity == self.MIN_CPU_FLAG and self.core_num_ > 1):
+                p = psutil.Process(self.pid_)   
+                p.cpu_affinity([0])
+                self.core_num_ = 1
+                self.sched_logger.update_cores(scheduler_logger.Job("memcached"), scheduler_logger.cpu_flag2str(1))
+                print("[INFO]: update memcached to 1 core")
+            elif (cpu_affinity == self.LOW_CPU_FLAG and self.core_num_ != 2):
+                p = psutil.Process(self.pid_)   
+                p.cpu_affinity([0, 1])
+                self.core_num_ = 2
+                self.sched_logger.update_cores(scheduler_logger.Job("memcached"), scheduler_logger.cpu_flag2str(2))
+                print("[INFO]: update memcached to 2 cores")
+            elif (cpu_affinity == self.HIGH_CPU_FLAG and self.core_num_ < 4):
+                p = psutil.Process(self.pid_)
+                p.cpu_affinity([0, 1, 2, 3])
+                self.core_num_ = 4
+                self.sched_logger.update_cores(scheduler_logger.Job("memcached"), scheduler_logger.cpu_flag2str(4))
+                print("[INFO]: update memcached to 4 cores")
+            else:
+                return
+        except:
             return
     
     def get_instant_proc_cpu_util(self) -> float:
