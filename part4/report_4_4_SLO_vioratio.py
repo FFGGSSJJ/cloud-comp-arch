@@ -20,7 +20,7 @@ def calculate_percentage(file_path):
     return percentage
 
 # Paths to the files (you should replace these with the actual paths of your files)
-file_paths = ["./results/results_part4_3/v2/results/result_0.txt", "./results/results_part4_3/v2/results/result_1.txt", "./results/results_part4_3/v2/results/result_2.txt"]
+file_paths = ["./results/results_part4_4/results/results_1.txt", "./results/results_part4_4/results/results_2.txt", "./results/results_part4_4/results/results_3.txt"]
 
 # Calculate the percentage for each file
 results = [calculate_percentage(path) for path in file_paths]

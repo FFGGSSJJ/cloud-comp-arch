@@ -35,8 +35,8 @@ def process_file(filename):
     return execution_times, makespan
 
 # Directory containing results
-results_dir = './results/results_part4_3/v2/logs'
-files = ['job_0.txt', 'job_1.txt', 'job_2.txt']
+results_dir = './results/results_part4_4/logs'
+files = ['job_1.txt', 'job_2.txt', 'job_3.txt']
 
 all_execution_times = []
 all_makespans = []
