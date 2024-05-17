@@ -81,11 +81,11 @@ def create_custom_color_plot(time, latency, qps, tasks, task_intervals, colors, 
 
     bars = ax1b.bar(filtered_time, filtered_qps, width=10, color='lightblue', edgecolor='blue', alpha=0.6, label='QPS [K]', zorder=1)
     ax1b.set_ylabel('QPS [K]')
-    ax1b.set_ylim(0, max(filtered_latency) * 110)
+    ax1b.set_ylim(0, 110)
 
     line, = ax1.plot(filtered_time, filtered_latency, label='P95 Latency [ms]', color='blue', alpha=1, marker='^', zorder=2)
     ax1.set_ylabel('P95 Latency [ms]')
-    ax1.set_ylim(0, max(filtered_latency) * 1.1)
+    ax1.set_ylim(0, 1.1)
     ax1.axhline(y=1, color='grey', linestyle='--', linewidth=1)
 
     for i, (task, color) in enumerate(zip(tasks, colors)):
@@ -177,9 +177,9 @@ def create_custom_color_plot2(time, coresa, coresb, qps, tasks, task_intervals, 
 
 
 
-output_path = 'results/results_part4_3/'
-log_path = output_path + 'logs/job_2.txt'
-results_path = output_path + 'results/result_2.txt'
+output_path = 'results/results_part4_4/'
+log_path = output_path + 'logs/job_3.txt'
+results_path = output_path + 'results/results_3.txt'
 
 p95 = []
 qps = []
