@@ -3,20 +3,17 @@ import json
 import sys, threading, time
 import resource_alert
 import scheduler_logger
+import random, argparse
 
 CORE_NUM = 4
 img_prefix = 'anakli/cca:'
 
-def cpu_flag2str(cpu_flag: int) -> list[str]:
-    if (cpu_flag == 1):
-        return ["3"]
-    elif (cpu_flag == 2):
-        return ["2", "3"]
-    elif (cpu_flag == 3):
-        return ["1", "2", "3"]
-    else:
-        return ["1", "2", "3", "4"]
-    
+def parse_arguments():
+    parser = argparse.ArgumentParser(description='Dynamic Scheduler Options')
+    parser.add_argument('--count', help='log number count', type=int)
+    parser.add_argument('--seq', help='Use the sequential scheduler', action='store_true')
+    parser.add_argument('--mul', help='Use the multi-switch scheduler', action='store_true')
+    return parser.parse_args()
 
 
 '''
@@ -31,6 +28,10 @@ class DynamicScheduler:
     high_cpu_set_ = '1-3'
     default_cpu_set_ = '2-3'
     low_cpu_set_ = '3'
+    cpu_flag_map_ = {4: full_cpu_set_,
+                     3: high_cpu_set_,
+                     2: default_cpu_set_,
+                     1: low_cpu_set_}
 
 
     def __init__(self, tags: list[str], containers_info: dict, log_cnt: int) -> None:
@@ -93,7 +94,7 @@ class DynamicScheduler:
         if (containerObj.status != "running" and containerObj.status != "exited"):
             containerObj.start()
 
-            self.sched_logger.job_start(scheduler_logger.Job(containerObj.name), cpu_flag2str(self.cpu_flag_), 4)
+            self.sched_logger.job_start(scheduler_logger.Job(containerObj.name), scheduler_logger.cpu_flag2str(self.cpu_flag_), 4)
             print("[INFO]: start " + containerObj.name)
 
     # update the container
@@ -103,7 +104,7 @@ class DynamicScheduler:
             if (containerObj.status != "exited"):
                 containerObj.update(cpuset_cpus=cpu_set)
                 print("[INFO]: update " + containerObj.name + " to " + cpu_set)
-                self.sched_logger.update_cores(scheduler_logger.Job(containerObj.name), cpu_flag2str(self.cpu_flag_))
+                self.sched_logger.update_cores(scheduler_logger.Job(containerObj.name), scheduler_logger.cpu_flag2str(self.cpu_flag_))
         except docker.errors.APIError as e:
             print(f"[DEBUG]: API error occurred - {e}, pass")
         except:
@@ -172,7 +173,7 @@ class DynamicScheduler:
         self.sched_logger.start()
 
         # start memcached process monitor thread
-        memcachedAlt = resource_alert.ResourceAlert("memcached", 300.0, 50.0)
+        memcachedAlt = resource_alert.ResourceAlert("memcached", self.sched_logger, 300.0, 50.0)
         memcachedAlt_thread = threading.Thread(target=memcachedAlt.keep_alterting, args=(interval,), daemon=True)
         memcachedAlt_thread.start()
 
@@ -199,7 +200,7 @@ class DynamicScheduler:
                 # if current container is paused
                 if (self.get_container_status(self.containerId_dict[img]) == "paused"):
                     # check feasibility to unpause
-                    if (eval >= memcachedAlt.Eval.Medium):
+                    if (eval == memcachedAlt.Eval.Medium or eval == memcachedAlt.Eval.Good or eval == memcachedAlt.Eval.Full):
                         self.cpu_flag_ = 2
                         self.update_container(self.containerId_dict[img], self.default_cpu_set_)
                         self.unpause_contaier(self.containerId_dict[img])
@@ -208,7 +209,15 @@ class DynamicScheduler:
                     continue
 
                 # evaluate system situation
-                if (eval >= memcachedAlt.Eval.Good):
+                if (eval == memcachedAlt.Eval.Full):
+                    if (self.cpu_flag_ == 4):
+                        time.sleep(interval)
+                        continue
+                    print("[DEBUG]:\thealthy 4")
+                    self.update_container(self.containerId_dict[img], self.full_cpu_set_)
+                    self.cpu_flag_ = 4
+                
+                if (eval == memcachedAlt.Eval.Good):
                     if (self.cpu_flag_ == 3):
                         time.sleep(interval)
                         continue
@@ -236,8 +245,6 @@ class DynamicScheduler:
                     print("[DEBUG]:\thealthy 0")
                     self.pause_container(self.containerId_dict[img])
                     self.cpu_flag_ = 0
-
-                print("---")
 
             self.sched_logger.job_end(scheduler_logger.Job(img))
 
@@ -269,10 +276,9 @@ class MultiDynamicScheduler(DynamicScheduler):
         self.cpu_intensive_queue_ = cpu_intensive_queue
         self.cpu_friendly_queue_ = cpu_friendly_queue
 
-    def launch_container(self, containerId):
-        # launch in default set
-        self.update_container(containerId, self.default_cpu_set_)
-        self.cpu_flag_ = 2
+    def launch_container(self, containerId, cpu_flag: int = 2):
+        self.update_container(containerId, self.cpu_flag_map_[cpu_flag])
+        self.cpu_flag_ = cpu_flag
 
         status = self.get_container_status(containerId)
         if (status == "created"):
@@ -282,10 +288,10 @@ class MultiDynamicScheduler(DynamicScheduler):
         else:
             return
 
-    def switch_container(self):
-        if (self.idle_container_ != "empty"):
+    def switch_container(self, cpu_flag: int = 2):
+        if (self.idle_container_ != "empty" and self.active_container_ != self.idle_container_):
             self.pause_container(self.containerId_dict[self.active_container_])
-            self.launch_container(self.containerId_dict[self.idle_container_])
+            self.launch_container(self.containerId_dict[self.idle_container_], cpu_flag)
             # swap
             self.cpu_intensive_flag_ = not self.cpu_intensive_flag_
             self.active_container_, self.idle_container_ = self.idle_container_, self.active_container_
@@ -298,8 +304,8 @@ class MultiDynamicScheduler(DynamicScheduler):
         self.sched_logger.start()
 
         # start memcached process monitor thread
-        memcachedAlt = resource_alert.ResourceAlert("memcached", 300.0, 50.0)
-        memcachedAlt_thread = threading.Thread(target=memcachedAlt.keep_alterting, args=(interval,), daemon=True)
+        memcachedAlt = resource_alert.ResourceAlert("memcached", self.sched_logger, 300.0, 50.0)
+        memcachedAlt_thread = threading.Thread(target=memcachedAlt.keep_alterting, args=(0.1,), daemon=True)
         memcachedAlt_thread.start()
 
         # initialization
@@ -348,7 +354,7 @@ class MultiDynamicScheduler(DynamicScheduler):
             # if current container is paused
             if (self.get_container_status(self.containerId_dict[self.active_container_]) == "paused"):
                 # check feasibility to unpause
-                if (eval >= memcachedAlt.Eval.Medium):
+                if (eval == memcachedAlt.Eval.Medium or eval == memcachedAlt.Eval.Good or eval == memcachedAlt.Eval.Full):
                     self.cpu_flag_ = 2
                     self.launch_container(self.containerId_dict[self.active_container_])
                 time.sleep(interval)
@@ -357,17 +363,15 @@ class MultiDynamicScheduler(DynamicScheduler):
             # evaluate system situation
             if (eval == memcachedAlt.Eval.Full):
                 if (not self.cpu_intensive_flag_):
-                    self.switch_container()
-                if (self.cpu_flag_ == 4):
+                    self.switch_container(3)
+                if (self.cpu_flag_ == 3):
                     time.sleep(interval)
                     continue
                 print("[DEBUG]:\thealthy 4")
-                self.update_container(self.containerId_dict[self.active_container_], self.full_cpu_set_)
-                self.cpu_flag_ = 4
+                self.update_container(self.containerId_dict[self.active_container_], self.high_cpu_set_)
+                self.cpu_flag_ = 3
             
             if (eval == memcachedAlt.Eval.Good):
-                if (not self.cpu_intensive_flag_):
-                    self.switch_container()
                 if (self.cpu_flag_ == 3):
                     time.sleep(interval)
                     continue
@@ -387,7 +391,7 @@ class MultiDynamicScheduler(DynamicScheduler):
 
             if (eval == memcachedAlt.Eval.Mild):
                 if (self.cpu_intensive_flag_):
-                    self.switch_container()
+                    self.switch_container(1)
                 if (self.cpu_flag_ == 1):
                     time.sleep(interval)
                     continue
@@ -406,33 +410,45 @@ class MultiDynamicScheduler(DynamicScheduler):
          # clean containers
         self.delete_all()
 
-
 if __name__ == "__main__":
 
     parsec_apps_tags = ['parsec_blackscholes', 'parsec_canneal', 'parsec_dedup', 'parsec_ferret', 'parsec_freqmine', 'splash2x_radix', 'parsec_vips']
     order_list = ['parsec_blackscholes', 'parsec_canneal', 'parsec_dedup', 'parsec_ferret', 'parsec_freqmine', 'splash2x_radix', 'parsec_vips']
+    time_order_list = ['parsec_freqmine', 'parsec_ferret', 'parsec_canneal', 'parsec_blackscholes', 'parsec_vips', 'parsec_dedup', 'splash2x_radix']
 
     cpu_intensive_list = ['parsec_dedup', 'parsec_ferret', 'parsec_freqmine']
-    cpu_friendly_list = ['parsec_blackscholes', 'parsec_canneal', 'splash2x_radix', 'parsec_vips']
+    cpu_friendly_list = ['parsec_canneal', 'parsec_blackscholes', 'parsec_vips', 'splash2x_radix']
 
+    the_args = parse_arguments()
+    log_cnt = the_args.count
+    
     json_file = open("howto.json")
     containerJson = json.load(json_file)
-    log_cnt = int(sys.argv[1])
 
     for key in containerJson:
         print(key)
         print(containerJson[key])
 
-    # dSched = DynamicScheduler(parsec_apps_tags, containerJson, log_cnt)
-    mSched = MultiDynamicScheduler(parsec_apps_tags, containerJson, log_cnt, cpu_intensive_list, cpu_friendly_list)
-    try:
-        # dSched.seq_dynamic_schedule(order_list, 0.25)
-        mSched.multi_dynamic_schedule(0.25)
-    except Exception as e:
-        print("[DEBUG]: Scheduler Failed")
-        print(e.message) if hasattr(e, 'message') else print(e)
-        # dSched.delete_all()
-        mSched.delete_all()
+    if (the_args.seq):
+        dSched = DynamicScheduler(parsec_apps_tags, containerJson, log_cnt)
+        try:
+            random.shuffle(order_list)
+            print(order_list)
+            dSched.seq_dynamic_schedule(order_list, 0.25)
+        except Exception as e:
+            print("[DEBUG]: Seq Scheduler Failed")
+            print(e.message) if hasattr(e, 'message') else print(e)
+            dSched.delete_all()
+    else:
+        mSched = MultiDynamicScheduler(parsec_apps_tags, containerJson, log_cnt, cpu_intensive_list, cpu_friendly_list)
+        try:
+            random.shuffle(order_list)
+            print(order_list)
+            mSched.multi_dynamic_schedule(0.25)
+        except Exception as e:
+            print("[DEBUG]: Mul Scheduler Failed")
+            print(e.message) if hasattr(e, 'message') else print(e)
+            mSched.delete_all()
 
     
 

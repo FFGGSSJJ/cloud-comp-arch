@@ -1,5 +1,6 @@
 import psutil, time, sys, enum
 import threading
+import scheduler_logger
 
 
 '''
@@ -14,24 +15,28 @@ class ResourceAlert:
         Mild = 1
         Bad = 0
     
-    HIGH_CPU_FLAG = 1
-    LOW_CPU_FLAG = 0
+    HIGH_CPU_FLAG = 2
+    LOW_CPU_FLAG = 1
+    MIN_CPU_FLAG = 0
 
     # cpu_threshold_high_: float
     # cpu_threshold_low_: float
 
-    def __init__(self, pName: str, threshold_high: float, threshold_low: float) -> None:
+    def __init__(self, pName: str, sched_logger: scheduler_logger.SchedulerLogger, threshold_high: float, threshold_low: float) -> None:
         # basic info
         self.pname_ = pName
         self.pid_ = self.get_pid()
+        self.sched_logger = sched_logger
 
         # cpu util
         self.util_lock_ = threading.Lock()
         self.proc_avg_cpu_util_ = 0.0
+        self.proc_pre_avg_cpu_util_ = 0.0
 
         #
         self.default_cpu_set_ = self.HIGH_CPU_FLAG
         self.low_cpu_set_ = self.LOW_CPU_FLAG
+        self.min_cpu_set_ = self.MIN_CPU_FLAG
         self.core_num_ = 4
 
         #
@@ -50,15 +55,23 @@ class ResourceAlert:
         Args:
             cpu_affinity (int): 0 for low cpu set (0-1) and 1 for default cpu set (0-3)
         """
-        if (cpu_affinity == self.LOW_CPU_FLAG and self.core_num_ > 2):
+        if (cpu_affinity == self.MIN_CPU_FLAG and self.core_num_ > 1):
+            p = psutil.Process(self.pid_)   
+            p.cpu_affinity([0])
+            self.core_num_ = 1
+            self.sched_logger.update_cores(scheduler_logger.Job("memcached"), scheduler_logger.cpu_flag2str(1))
+            print("[INFO]: update memcached to 1 core")
+        elif (cpu_affinity == self.LOW_CPU_FLAG and self.core_num_ != 2):
             p = psutil.Process(self.pid_)   
             p.cpu_affinity([0, 1])
             self.core_num_ = 2
+            self.sched_logger.update_cores(scheduler_logger.Job("memcached"), scheduler_logger.cpu_flag2str(2))
             print("[INFO]: update memcached to 2 cores")
         elif (cpu_affinity == self.HIGH_CPU_FLAG and self.core_num_ < 4):
             p = psutil.Process(self.pid_)
             p.cpu_affinity([0, 1, 2, 3])
             self.core_num_ = 4
+            self.sched_logger.update_cores(scheduler_logger.Job("memcached"), scheduler_logger.cpu_flag2str(4))
             print("[INFO]: update memcached to 4 cores")
         else:
             return
@@ -77,15 +90,15 @@ class ResourceAlert:
             continue
         return utils
     
-    def get_instant_avg_cpu_util(self) -> float:
+    def get_instant_avg_cpu_util(self) -> tuple:
         """instantly return the avg cpu util of the process being alterting
 
         Returns:
             float: _description_
         """
         with self.util_lock_:
-            return self.proc_avg_cpu_util_
-    
+            return self.proc_avg_cpu_util_, self.proc_pre_avg_cpu_util_
+        
     def evaluate(self, used_core_num: int, other_cpu_util: float) -> int:
         """evaulate system condition
 
@@ -105,7 +118,7 @@ class ResourceAlert:
         # total util, job util and proc util do not follow a relation due to the different calculation methods
         total_util = self.get_instant_total_cpu_util()
 
-        proc_util = self.get_instant_avg_cpu_util()  # TODO: which cpu util to use?
+        proc_util, prev_util = self.get_instant_avg_cpu_util()  # TODO: which cpu util to use?
         proc_util_rate = proc_util/(self.core_num_*100.0)
 
         # use docker stats to monitor container cpu usage
@@ -114,23 +127,28 @@ class ResourceAlert:
         job_util_rate = job_util/(used_core_num*100.0) if used_core_num > 0 else 0
 
         print("[INFO]: memcached util:\t"+str(proc_util)+"/"+str(self.core_num_*100.0))
+        print("[INFO]: prev util:\t"+str(prev_util)+"/"+str(self.core_num_*100.0))
         print("[INFO]: total util:\t"+str(total_util)+"/"+str(4*100.0))
         print("[INFO]: job util:\t"+str(job_util)+"/"+str(used_core_num*100.0))
 
         # < 25
-        if (proc_util < self.cpu_threshold_low_/2):
-            self._change_cpu_affinity(self.low_cpu_set_)
+        if (proc_util < self.cpu_threshold_low_*0.5 and self.core_num_ <= 1):
             return self.Eval.Full
 
-
-        # < 50
-        if (proc_util < self.cpu_threshold_low_):
-            self._change_cpu_affinity(self.low_cpu_set_)
+        # < 35
+        if (proc_util < self.cpu_threshold_low_*0.7):
             return self.Eval.Good
         
-        # > 300 TODO: potentially upgrade proc cpu set
+        # delta >= 40
+        if (proc_util - prev_util >= 40.0):
+            return self.Eval.Mild
+        
+        # < 50 or delta >= 20
+        if (proc_util < self.cpu_threshold_low_ or proc_util - prev_util >= 20.0):
+            return self.Eval.Medium
+    
+        # > 300
         if (proc_util >= self.cpu_threshold_high_):
-            self._change_cpu_affinity(self.default_cpu_set_)
             return self.Eval.Bad
         
         # 50 - 300 TODO: dynamically adjust threshold?
@@ -161,7 +179,7 @@ class ResourceAlert:
                 elif (used_core_num == 2):
                     return self.Eval.Medium if job_util_rate >= 0.65 else self.Eval.Mild
                 elif (used_core_num == 1):
-                    return self.Eval.Medium if job_util_rate >= 1.2 else self.Eval.Mild
+                    return self.Eval.Medium if job_util_rate >= 1.5 else self.Eval.Mild
                 else:
                     return self.Eval.Mild
 
@@ -170,7 +188,7 @@ class ResourceAlert:
                 if (used_core_num > 2):
                     return self.Eval.Good if job_util_rate >= 1.0 and proc_util <= 75.0 else self.Eval.Medium
                 elif (used_core_num == 2):
-                    return self.Eval.Good if job_util_rate >= 1.0 and proc_util <= 75.0 else self.Eval.Medium
+                    return self.Eval.Good if job_util_rate >= 1.3 and proc_util <= 75.0 else self.Eval.Medium
                 else:
                     return self.Eval.Medium
             else:
@@ -180,14 +198,44 @@ class ResourceAlert:
         return self.Eval.Bad
     
     def keep_alterting(self, interval: float = 0.25):
+        low_load_cnt = 0
+        min_load_cnt = 0
         while True:
             avg_util = self.get_avg_proc_cpu_util(interval)
             with self.util_lock_:
-                self.proc_avg_cpu_util_ = avg_util
+                self.proc_pre_avg_cpu_util_, self.proc_avg_cpu_util_ = self.proc_avg_cpu_util_, avg_util
+            
+            # delta >= 30
+            if (self.proc_avg_cpu_util_ - self.proc_pre_avg_cpu_util_ >= 30.0):
+                low_load_cnt, min_load_cnt = 0, 0
+                self._change_cpu_affinity(self.default_cpu_set_)
+                continue
+            
+            # > 50
+            if (self.proc_avg_cpu_util_ >= self.cpu_threshold_low_):
+                low_load_cnt, min_load_cnt = 0, 0
+                self._change_cpu_affinity(self.default_cpu_set_)
+                continue
+            
+            # < 25
+            if (self.proc_avg_cpu_util_ <= self.cpu_threshold_low_/2):
+                low_load_cnt += 1
+                min_load_cnt += 1
+                if (min_load_cnt >= int(1/interval)):
+                    self._change_cpu_affinity(self.min_cpu_set_)
+                continue
+            
+            # < 50
+            if (self.proc_avg_cpu_util_ < self.cpu_threshold_low_):
+                low_load_cnt += 1
+                min_load_cnt = 0
+                if (self.core_num_ <= 1 or low_load_cnt >= int(1/interval)):
+                    self._change_cpu_affinity(self.low_cpu_set_)
+                continue
             
 
 
-    
+
 # function for part4.1.c
 def measure_cpu_util(interval: float, test_file: str):
     memcachedAlt = ResourceAlert("memcached", 100, 100)

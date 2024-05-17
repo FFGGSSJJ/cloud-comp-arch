@@ -5,6 +5,16 @@ import urllib.parse
 
 LOG_STRING = "{timestamp} {event} {job_name} {args}"
 
+def cpu_flag2str(cpu_flag: int) -> list[str]:
+    if (cpu_flag == 1):
+        return ["3"]
+    elif (cpu_flag == 2):
+        return ["2", "3"]
+    elif (cpu_flag == 3):
+        return ["1", "2", "3"]
+    else:
+        return ["1", "2", "3", "4"]
+
 class Job(Enum):
     SCHEDULER = "scheduler"
     MEMCACHED = "memcached"
