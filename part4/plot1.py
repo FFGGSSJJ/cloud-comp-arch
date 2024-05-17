@@ -65,7 +65,7 @@ def process_log_file(log_path):
     return events, start_time, end_time, core_updates
 
 
-def create_custom_color_plot(time, latency, qps, tasks, task_intervals, colors, job_duration, text_size, path, barinterval, changelist):
+def create_custom_color_plot(time, latency, qps, tasks, task_intervals, colors, job_duration, text_size, path, barinterval, changelist, save):
     fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(15, 5),
                                    gridspec_kw={'height_ratios': [9, 2], 'hspace': 0},
                                    sharex=True)
@@ -90,14 +90,14 @@ def create_custom_color_plot(time, latency, qps, tasks, task_intervals, colors, 
     ax1.set_zorder(2)
     ax1.patch.set_visible(False)
 
-    bars = ax1b.bar(filtered_time, filtered_qps, width=barinterval-1, color='lightblue', alpha=0.6, label='QPS [K]', zorder=1)
+    bars = ax1b.bar(filtered_time, filtered_qps, width=barinterval, color='lightblue', alpha=0.6, label='QPS [K]', zorder=1)
     ax1b.set_ylabel('QPS [K]', fontsize=text_size)
     if barinterval == 2:
         ax1b.set_ylim(0, 110)
     elif barinterval == 10:
         ax1b.set_ylim(0, 110)
 
-    line, = ax1.plot(filtered_time, filtered_latency, label='P95 Latency [ms]', color='blue', alpha=1, marker='^', zorder=2, markersize=5)
+    line, = ax1.plot(filtered_time, filtered_latency, label='P95 Latency [ms]', color='blue', alpha=1, marker='^', zorder=2, linewidth=0.5, markersize=1.5)
     ax1.set_ylabel('P95 Latency [ms]', fontsize=text_size)
     if barinterval == 2:
         ax1.set_ylim(0, max(latency)*1.05/1000)
@@ -160,14 +160,8 @@ def create_custom_color_plot(time, latency, qps, tasks, task_intervals, colors, 
         y_position = y_positions[task]
         for start, duration in intervals:
             ax2.broken_barh([(start, duration)], (y_position, bar_height), facecolors=color, zorder=1)
-            if int(start) in [61]:
-                # ax2.text(start, y_position + bar_height / 2, f'{int(start)}s', ha='left', va='center', color='black', zorder=2, fontsize=text_size-4)
-                pass
-            elif int(start) in [0,20]:
-                ax2.text(start, y_position + bar_height / 2, f'{int(start)}s', ha='left', va='center', color='black', zorder=2, fontsize=text_size-4)
-                pass
-            elif int(start) in [75]:
-                ax2.text(start, y_position + bar_height / 5, f'{int(start)}s', ha='left', va='center', color='black', zorder=2, fontsize=text_size-4)
+            if int(start) in changelist:
+                ax2.text(start+2, y_position + (2.8 * bar_height / 4), f'{int(start)}s', ha='left', va='center', color='black', zorder=2, fontsize=text_size-4)
                 pass
             elif start in (textup1 + textup2):
                 ax2.text(start, y_position + (2.8 * bar_height / 4), f'{int(start)}s', ha='left', va='center', color='black', zorder=2, fontsize=text_size-4)
@@ -195,12 +189,14 @@ def create_custom_color_plot(time, latency, qps, tasks, task_intervals, colors, 
     ax2.xaxis.set_tick_params(which='both', labelbottom=True)
     plt.xlim(left=0, right=1030)
     plt.tight_layout()
-    plt.savefig(path, dpi=1200)
-    # plt.show()
+    if save == 1:
+        plt.savefig(path, dpi=1200)
+    else:
+        plt.show()
     
 
 
-def create_custom_color_plot2(time, coresa, coresb, qps, tasks, task_intervals, colors, job_duration, text_size, path, barinterval, changelist):
+def create_custom_color_plot2(time, coresa, coresb, qps, tasks, task_intervals, colors, job_duration, text_size, path, barinterval, changelist, save):
     fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(15, 5),  # Adjusted figure size for better layout
                                    gridspec_kw={'height_ratios': [9, 2], 'hspace': 0},  # Adjusted height ratios for the task bars
                                    sharex=True)
@@ -222,7 +218,7 @@ def create_custom_color_plot2(time, coresa, coresb, qps, tasks, task_intervals, 
     ax1.set_zorder(2)  
     ax1.patch.set_visible(False)  
 
-    bars = ax1b.bar(filtered_time, filtered_qps, width=barinterval-1, color='lightblue',  alpha=0.6, label='QPS [K]', zorder=1)
+    bars = ax1b.bar(filtered_time, filtered_qps, width=barinterval, color='lightblue',  alpha=0.6, label='QPS [K]', zorder=1)
     ax1b.set_ylabel('QPS [K]', fontsize=text_size)
     ax1b.set_ylim(0, 110)
 
@@ -287,14 +283,8 @@ def create_custom_color_plot2(time, coresa, coresb, qps, tasks, task_intervals, 
         y_position = y_positions[task]
         for start, duration in intervals:
             ax2.broken_barh([(start, duration)], (y_position, bar_height), facecolors=color, zorder=1)
-            if int(start) in [61]:
-                # ax2.text(start, y_position + bar_height / 2, f'{int(start)}s', ha='left', va='center', color='black', zorder=2, fontsize=text_size-4)
-                pass
-            elif int(start) in [0,20]:
-                ax2.text(start, y_position + bar_height / 2, f'{int(start)}s', ha='left', va='center', color='black', zorder=2, fontsize=text_size-4)
-                pass
-            elif int(start) in [75]:
-                ax2.text(start, y_position + bar_height / 5, f'{int(start)}s', ha='left', va='center', color='black', zorder=2, fontsize=text_size-4)
+            if int(start) in changelist:
+                ax2.text(start+2, y_position + (2.8 * bar_height / 4), f'{int(start)}s', ha='left', va='center', color='black', zorder=2, fontsize=text_size-4)
                 pass
             elif start in (textup1 + textup2):
                 ax2.text(start, y_position + (2.8 * bar_height / 4), f'{int(start)}s', ha='left', va='center', color='black', zorder=2, fontsize=text_size-4)
@@ -322,15 +312,18 @@ def create_custom_color_plot2(time, coresa, coresb, qps, tasks, task_intervals, 
     ax2.xaxis.set_tick_params(which='both', labelbottom=True)
     plt.xlim(left=0, right=1030)
     plt.tight_layout()
-    plt.savefig(path, dpi=1200)
-    # plt.show()
+    if save == 1:
+        plt.savefig(path, dpi=1200)
+    else:
+        plt.show()
 
 
 
 # changelist = [214,237,252,255,238,476,447]
-changelist = []
+changelist = [209]
+save = 1
 
-for part in [3]:
+for part in [4]:
     for pathstr3 in [2]:
         if part == 3:
             output_path = 'results/results_part4_3/v3/'
@@ -382,6 +375,6 @@ for part in [3]:
         tasks = np.array(['blackscholes', 'canneal', 'dedup', 'ferret', 'freqmine', 'radix', 'vips'])[::-1]
         colors = np.array(['#CCA000', '#CCCCAA', '#CCACCA', '#AACCCA', '#0CCA00', '#00CCA0', '#CC0A00'])[::-1]
 
-        create_custom_color_plot(time, p95, qps, tasks, task_intervals, colors, end_time - start_time, text_size, plot_path1, interval, changelist)
-        create_custom_color_plot2(time, coresa, coresb, qps, tasks, task_intervals, colors, end_time - start_time, text_size, plot_path2, interval, changelist)
+        create_custom_color_plot(time, p95, qps, tasks, task_intervals, colors, end_time - start_time, text_size, plot_path1, interval, changelist, save)
+        create_custom_color_plot2(time, coresa, coresb, qps, tasks, task_intervals, colors, end_time - start_time, text_size, plot_path2, interval, changelist, save)
 
