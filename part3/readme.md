@@ -15,8 +15,8 @@ chmod +x scheduler.sh
 
 Presented in `./results`
 
-![](./results/part_3_figures/Batch Job Execution Timeline_Run1.png)
+![Batch Job Execution Timeline_Run1](./results/part_3_figures/Batch Job Execution Timeline_Run1.png)
 
-![](./results/part_3_figures/Batch Job Execution Timeline_Run2.png)
+![Batch Job Execution Timeline_Run2](./results/part_3_figures/Batch Job Execution Timeline_Run2.png)
 
-![](./results/part_3_figures/Batch Job Execution Timeline_Run3.png)
+![Batch Job Execution Timeline_Run3](./results/part_3_figures/Batch Job Execution Timeline_Run3.png)
