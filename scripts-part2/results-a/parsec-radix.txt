@@ -1,7 +1,0 @@
-real	0m56.670s
-real	1m6.759s
-real	1m0.723s
-real	1m4.112s
-real	1m3.581s
-real	1m29.282s
-real	1m3.329s
